@@ -3,9 +3,9 @@
 RepoPilot is a constrained coding agent that turns a narrowly scoped repository task into a tested,
 reviewable patch and an inspectable execution report.
 
-The project is currently in its design and scaffolding phase. It is intended to demonstrate bounded
-agent orchestration, safety policy, failure handling, and evaluation—not to be a general autonomous
-IDE or production security boundary.
+The project currently includes its design baseline and safe repository/workspace layer. It is
+intended to demonstrate bounded agent orchestration, safety policy, failure handling, and
+evaluation—not to be a general autonomous IDE or production security boundary.
 
 ## Development setup
 

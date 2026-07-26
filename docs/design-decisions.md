@@ -59,3 +59,26 @@ or **superseded**.
   commands or richer parameter validation justify another runtime dependency.
 - **Consequences:** The skeleton installs and runs with fewer dependencies. Some CLI ergonomics may
   require more explicit code later.
+
+## ADR-007: Capture a private Git baseline for each prepared repository
+
+- **Status:** accepted
+- **Context:** A local source may already contain staged, unstaged, or untracked work. Diffing from
+  its `HEAD` would incorrectly attribute those changes to RepoPilot, while committing a baseline in
+  the copied repository would alter its own index and metadata.
+- **Decision:** Select files using the copied repository's index and ignore rules, then snapshot
+  their current contents in a separate RepoPilot-owned bare Git directory. Reset its index to that
+  immutable tree before each diff.
+- **Consequences:** Pre-existing user work is treated as initial state, repeated diffs are stable,
+  and bookkeeping does not stage project files. The workspace uses additional disk space, and the
+  first release supports standard working trees rather than linked worktrees or submodules.
+
+## ADR-008: Restrict public repository sources to credential-free HTTPS
+
+- **Status:** accepted
+- **Context:** Git accepts SSH, local paths, remote helpers, and extensible transports. Some can read
+  local files or launch helper programs, which is broader authority than cloning a public project.
+- **Decision:** The public-repository API accepts only HTTPS URLs with a hostname and no embedded
+  username or password. Local repositories use the separate path-based API.
+- **Consequences:** SCP-style SSH URLs, private repositories, and `file://` sources are unsupported
+  in the MVP. Authentication can be designed later as a distinct, explicit capability.

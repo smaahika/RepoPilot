@@ -12,14 +12,14 @@ as a small, tested commit. Scope may be reduced after the Day 7 checkpoint.
 
 ## Day 2 — Repository and workspace layer
 
-- [ ] Define workspace/repository models and typed failures.
-- [ ] Create and clean up unique per-run directories.
-- [ ] Copy a local repository without mutating its source.
-- [ ] Clone a public repository through an injectable Git adapter.
-- [ ] Resolve paths safely and reject traversal and symlink escapes.
-- [ ] Build a bounded, ignore-aware file inventory.
-- [ ] Generate a unified diff against the initial checkout.
-- [ ] Test isolation, cleanup, path attacks, limits, and Git failures.
+- [x] Define workspace/repository models and typed failures.
+- [x] Create and clean up unique per-run directories.
+- [x] Copy a local repository without mutating its source.
+- [x] Clone a public repository through an injectable Git adapter.
+- [x] Resolve paths safely and reject traversal and symlink escapes.
+- [x] Build a bounded, ignore-aware file inventory.
+- [x] Generate a unified diff against the initial checkout.
+- [x] Test isolation, cleanup, path attacks, limits, and Git failures.
 
 ## Day 3 — Tool and policy layer
 

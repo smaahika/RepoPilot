@@ -109,8 +109,40 @@ src/repopilot/
 └── run_logging.py         # Avoid shadows of the standard logging module
 ```
 
-Modules will be added when their Day 2–6 behavior is implemented. Empty architectural placeholders
-are intentionally avoided because they create interfaces without evidence.
+Implemented repository-boundary modules now include `models.py`, `errors.py`, `path_policy.py`,
+`workspace.py`, `git_client.py`, and `repository.py`. Remaining modules will be added alongside
+their Day 3–6 behavior. Empty architectural placeholders are intentionally avoided because they
+create interfaces without evidence.
+
+## Repository preparation and baseline
+
+```text
+trusted base/
+├── workspaces/<run-id>/
+│   ├── repository/       # copied or cloned working tree
+│   └── baseline.git/     # RepoPilot-owned object database and index
+└── runs/<run-id>/        # durable artifacts; preserved during workspace cleanup
+```
+
+For a local source, the repository service copies the complete working tree so the source remains
+untouched. Public sources must use credential-free HTTPS URLs before cloning is delegated to the
+bounded Git adapter. Standard Git working trees with a real `.git` directory are supported
+initially; linked worktrees and submodules remain explicit limitations.
+
+RepoPilot asks the copied repository's Git index which tracked and non-ignored untracked paths are
+visible, validates each path, and snapshots those contents into its own bare Git directory. This
+separate baseline has two important properties:
+
+1. dirty or untracked user files present at preparation time become part of the baseline; and
+2. generating RepoPilot's diff never stages files in the copied repository's own index.
+
+Before every diff, the private index is reset to the immutable baseline tree. Visible new files are
+marked intent-to-add, after which Git produces a binary-capable unified diff. Repeated calls cannot
+retain stale index entries from previous inspections.
+
+The repository service owns the system-wide inventory ceiling. It applies the limit during initial
+baseline capture, later inventory requests, and diff preparation so excessive repositories are
+rejected before expensive snapshot work begins.
 
 ## Run artifacts
 
