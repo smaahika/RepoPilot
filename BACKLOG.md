@@ -23,9 +23,9 @@ as a small, tested commit. Scope may be reduced after the Day 7 checkpoint.
 
 ## Day 3 — Tool and policy layer
 
-- [ ] Implement validated list, search, read, patch, diff, and command contracts.
-- [ ] Enforce command allowlists, timeouts, cwd checks, and output limits.
-- [ ] Add success and adversarial policy tests.
+- [x] Implement validated list, search, read, patch, diff, and command contracts.
+- [x] Enforce command allowlists, timeouts, cwd checks, and output limits.
+- [x] Add success and adversarial policy tests.
 
 ## Day 4 — Model adapter and planning
 

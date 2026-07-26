@@ -111,8 +111,12 @@ src/repopilot/
 
 Implemented repository-boundary modules now include `models.py`, `errors.py`, `path_policy.py`,
 `workspace.py`, `git_client.py`, and `repository.py`. Remaining modules will be added alongside
-their Day 3–6 behavior. Empty architectural placeholders are intentionally avoided because they
+their Day 4–6 behavior. Empty architectural placeholders are intentionally avoided because they
 create interfaces without evidence.
+
+Day 3 adds `process.py`, `tool_models.py`, and the `tools/` package. Pydantic request schemas reject
+unknown fields and enforce caller-facing limits. Every invoked tool returns a normalized result
+with its name, duration, typed data, or a stable error category.
 
 ## Repository preparation and baseline
 
@@ -143,6 +147,41 @@ retain stale index entries from previous inspections.
 The repository service owns the system-wide inventory ceiling. It applies the limit during initial
 baseline capture, later inventory requests, and diff preparation so excessive repositories are
 rejected before expensive snapshot work begins.
+
+## Tool and process boundary
+
+```text
+untrusted arguments
+       │
+       ▼
+Pydantic request schema
+       │
+       ▼
+path / patch / command policy
+       │
+       ▼
+bounded implementation
+       │
+       ▼
+ToolResult[data | typed error]
+```
+
+Read tools expose deterministic listings, bounded UTF-8 line reads, exact search, and time-bounded
+regular-expression search. Regex matching runs in an isolated Python child process so pathological
+patterns can be terminated without blocking the future controller.
+
+Patch writes accept a constrained Git-style unified diff. RepoPilot validates every declared path,
+rejects Git metadata, traversal, rename/copy metadata, and symlink creation, then runs `git apply
+--check` before applying the patch. The workspace's original Git index remains untouched.
+
+Commands match explicit prefixes such as `pytest`, `ruff check`, `mypy`, and selected npm scripts.
+They use a validated repository-relative working directory, a stripped environment, no shell,
+streaming output caps, monotonic deadlines, and POSIX process-group termination. A nonzero exit is
+command data rather than a tool error; the verifier will interpret whether that means tests failed.
+
+The local command runner is a capability boundary, not a security sandbox. Test execution runs
+repository code and cannot reliably block filesystem or network access. Docker isolation remains a
+separate Day 8 control.
 
 ## Run artifacts
 

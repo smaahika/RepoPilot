@@ -82,3 +82,24 @@ or **superseded**.
   username or password. Local repositories use the separate path-based API.
 - **Consequences:** SCP-style SSH URLs, private repositories, and `file://` sources are unsupported
   in the MVP. Authentication can be designed later as a distinct, explicit capability.
+
+## ADR-009: Share bounded process mechanics without sharing tool policy
+
+- **Status:** accepted
+- **Context:** Git and verification commands both require streaming output caps, deadlines, clean
+  termination, and shell-free execution. Their authorization and result semantics differ.
+- **Decision:** Use one low-level bounded process runner while keeping Git translation and command
+  allowlisting in separate adapters. On POSIX, each process gets a new session so limits terminate
+  its descendants as well as its immediate process.
+- **Consequences:** Resource enforcement has one implementation and test suite. The runner remains
+  policy-neutral, so callers must still provide sanitized arguments and environments.
+
+## ADR-010: Treat nonzero command exits as successful tool execution
+
+- **Status:** accepted
+- **Context:** A test command returning exit code 1 executed correctly even though verification
+  failed. Conflating the two would prevent the controller from reflecting on test output.
+- **Decision:** `run_command` returns exit code, stdout, and stderr as successful tool data. Tool
+  errors are reserved for policy denial, spawn failure, timeout, and resource-limit violations.
+- **Consequences:** The later verifier must classify command outcomes by command type. Tool failure
+  metrics remain distinct from test failure metrics.

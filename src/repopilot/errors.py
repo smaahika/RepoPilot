@@ -101,3 +101,36 @@ class GitOutputLimitError(GitError):
         )
         self.operation = operation
         self.output_limit_bytes = output_limit_bytes
+
+
+class ProcessError(RepoPilotError):
+    """Base class for bounded subprocess failures."""
+
+
+class ProcessSpawnError(ProcessError):
+    """Raised when a subprocess cannot be started."""
+
+    def __init__(self, operation: str, reason: str) -> None:
+        super().__init__(f"Could not start {operation!r}: {reason}")
+        self.operation = operation
+        self.reason = reason
+
+
+class ProcessTimeoutError(ProcessError):
+    """Raised when a subprocess exceeds its deadline."""
+
+    def __init__(self, operation: str, timeout_seconds: float) -> None:
+        super().__init__(f"Process {operation!r} exceeded its {timeout_seconds:g} second timeout.")
+        self.operation = operation
+        self.timeout_seconds = timeout_seconds
+
+
+class ProcessOutputLimitError(ProcessError):
+    """Raised when a subprocess exceeds its output budget."""
+
+    def __init__(self, operation: str, output_limit_bytes: int) -> None:
+        super().__init__(
+            f"Process {operation!r} exceeded its {output_limit_bytes} byte output limit."
+        )
+        self.operation = operation
+        self.output_limit_bytes = output_limit_bytes

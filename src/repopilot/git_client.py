@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 import os
-import selectors
-import subprocess
-import time
-from contextlib import suppress
-from dataclasses import dataclass
+import shutil
 from pathlib import Path
 from typing import Protocol
 
-from repopilot.errors import GitCommandError, GitOutputLimitError, GitTimeoutError
+from repopilot.errors import (
+    GitCommandError,
+    GitOutputLimitError,
+    GitTimeoutError,
+    ProcessOutputLimitError,
+    ProcessSpawnError,
+    ProcessTimeoutError,
+)
+from repopilot.process import BoundedProcessRunner, ProcessResult, safe_search_path
 
 
 class GitClient(Protocol):
@@ -45,12 +49,6 @@ class GitClient(Protocol):
         ...
 
 
-@dataclass(frozen=True, slots=True)
-class _GitResult:
-    stdout: bytes
-    stderr: bytes
-
-
 class SubprocessGitClient:
     """Execute a deliberately small set of Git commands without invoking a shell."""
 
@@ -65,7 +63,12 @@ class SubprocessGitClient:
         if output_limit_bytes <= 0:
             raise ValueError("output_limit_bytes must be positive")
         self._timeout_seconds = timeout_seconds
-        self._output_limit_bytes = output_limit_bytes
+        self._runner = BoundedProcessRunner(
+            timeout_seconds=timeout_seconds,
+            output_limit_bytes=output_limit_bytes,
+        )
+        self._search_path = safe_search_path(os.environ.get("PATH", os.defpath))
+        self._git_executable = shutil.which("git", path=self._search_path)
 
     def clone(self, source: str, destination: Path) -> None:
         """Clone a repository with prompts and user-level Git configuration disabled."""
@@ -162,7 +165,7 @@ class SubprocessGitClient:
         arguments: list[str],
         *,
         stdin: bytes | None = None,
-    ) -> _GitResult:
+    ) -> ProcessResult:
         return self._run(
             operation,
             [
@@ -180,82 +183,45 @@ class SubprocessGitClient:
         arguments: list[str],
         *,
         stdin: bytes | None = None,
-    ) -> _GitResult:
+    ) -> ProcessResult:
+        if self._git_executable is None:
+            raise GitCommandError(operation, 127, "Git is not installed")
         command = [
-            "git",
+            self._git_executable,
             "-c",
             "core.fsmonitor=false",
             "-c",
             "core.hooksPath=/dev/null",
             *arguments,
         ]
-        environment = os.environ.copy()
-        environment.update(
-            {
-                "GIT_CONFIG_NOSYSTEM": "1",
-                "GIT_CONFIG_GLOBAL": os.devnull,
-                "GIT_LFS_SKIP_SMUDGE": "1",
-                "GIT_TERMINAL_PROMPT": "0",
-            }
-        )
+        environment = {
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_LFS_SKIP_SMUDGE": "1",
+            "GIT_TERMINAL_PROMPT": "0",
+            "LANG": os.environ.get("LANG", "C.UTF-8"),
+            "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8"),
+            "PATH": self._search_path,
+        }
 
         try:
-            process = subprocess.Popen(
+            result = self._runner.run(
+                operation,
                 command,
-                stdin=subprocess.PIPE if stdin is not None else subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                env=environment,
-                shell=False,
+                stdin=stdin,
+                environment=environment,
             )
-        except OSError as exc:
-            raise GitCommandError(operation, 127, str(exc)) from exc
+        except ProcessTimeoutError as exc:
+            raise GitTimeoutError(operation, self._timeout_seconds) from exc
+        except ProcessOutputLimitError as exc:
+            raise GitOutputLimitError(operation, exc.output_limit_bytes) from exc
+        except ProcessSpawnError as exc:
+            raise GitCommandError(operation, 127, exc.reason) from exc
 
-        assert process.stdout is not None
-        assert process.stderr is not None
-        if stdin is not None:
-            assert process.stdin is not None
-            with suppress(BrokenPipeError):
-                process.stdin.write(stdin)
-            process.stdin.close()
-
-        selector = selectors.DefaultSelector()
-        selector.register(process.stdout, selectors.EVENT_READ, "stdout")
-        selector.register(process.stderr, selectors.EVENT_READ, "stderr")
-        stdout = bytearray()
-        stderr = bytearray()
-        deadline = time.monotonic() + self._timeout_seconds
-
-        try:
-            while selector.get_map():
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    process.kill()
-                    process.wait()
-                    raise GitTimeoutError(operation, self._timeout_seconds)
-
-                for key, _ in selector.select(timeout=remaining):
-                    chunk = os.read(key.fd, 65_536)
-                    if not chunk:
-                        selector.unregister(key.fileobj)
-                        continue
-                    target = stdout if key.data == "stdout" else stderr
-                    target.extend(chunk)
-                    if len(stdout) + len(stderr) > self._output_limit_bytes:
-                        process.kill()
-                        process.wait()
-                        raise GitOutputLimitError(operation, self._output_limit_bytes)
-            exit_code = process.wait()
-        finally:
-            selector.close()
-            process.stdout.close()
-            process.stderr.close()
-
-        result = _GitResult(stdout=bytes(stdout), stderr=bytes(stderr))
-        if exit_code != 0:
+        if result.exit_code != 0:
             raise GitCommandError(
                 operation,
-                exit_code,
+                result.exit_code,
                 result.stderr.decode("utf-8", errors="replace"),
             )
         return result

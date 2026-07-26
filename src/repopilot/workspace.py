@@ -62,9 +62,7 @@ class WorkspaceManager:
         if workspace.root_path != expected:
             raise WorkspaceSafetyError("Refusing to clean a workspace outside its run allocation.")
         if workspace.root_path.is_symlink():
-            raise WorkspaceSafetyError(
-                "Refusing to clean a workspace root that is a symlink."
-            )
+            raise WorkspaceSafetyError("Refusing to clean a workspace root that is a symlink.")
         if not workspace.root_path.exists():
             return
         if not workspace.root_path.is_dir():

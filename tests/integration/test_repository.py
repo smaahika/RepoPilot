@@ -290,3 +290,18 @@ def test_git_adapter_enforces_output_limit(tmp_path: Path) -> None:
 
     with pytest.raises(GitOutputLimitError):
         client.list_files(source)
+
+
+def test_git_adapter_ignores_inherited_git_environment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _make_repository(tmp_path / "source")
+    (source / "file.txt").write_text("content\n")
+    _git(source, "add", "file.txt")
+    monkeypatch.setenv("GIT_DIR", str(tmp_path / "malicious-git-dir"))
+    workspace = WorkspaceManager(tmp_path / "managed").create("clean-environment")
+
+    checkout = RepositoryService().prepare_local(source, workspace)
+
+    assert RepositoryService().inventory(checkout).count == 1
