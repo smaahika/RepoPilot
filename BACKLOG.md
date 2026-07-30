@@ -29,10 +29,10 @@ as a small, tested commit. Scope may be reduced after the Day 7 checkpoint.
 
 ## Day 4 — Model adapter and planning
 
-- [ ] Define provider-neutral model and usage protocols.
-- [ ] Implement structured plan and tool-call schemas.
-- [ ] Add a scripted fake model and malformed-response tests.
-- [ ] Implement the first direct provider adapter behind the protocol.
+- [x] Define provider-neutral model and usage protocols.
+- [x] Implement structured plan and tool-call schemas.
+- [x] Add a scripted fake model and malformed-response tests.
+- [x] Implement the first direct provider adapter behind the protocol.
 
 ## Day 5 — Controller vertical slice
 

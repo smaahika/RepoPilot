@@ -103,3 +103,25 @@ or **superseded**.
   errors are reserved for policy denial, spawn failure, timeout, and resource-limit violations.
 - **Consequences:** The later verifier must classify command outcomes by command type. Tool failure
   metrics remain distinct from test failure metrics.
+
+## ADR-011: Use generic structured generation as the model boundary
+
+- **Status:** accepted
+- **Context:** Planning and later edit decisions need different schemas, while exposing a provider's
+  response or tool-call types would couple orchestration to one SDK.
+- **Decision:** The model protocol accepts provider-neutral instructions and input plus the Pydantic
+  output type expected by the caller. The first adapter uses OpenAI Responses structured outputs;
+  prompts remain in application components such as the planner.
+- **Consequences:** Every model result is runtime-validated before use, one scripted fake can serve
+  multiple phases, and provider usage is normalized. Provider-native conversation and tool objects
+  are intentionally unavailable unless a future requirement justifies expanding the protocol.
+
+## ADR-012: Keep retry ownership above provider SDKs
+
+- **Status:** accepted
+- **Context:** Hidden SDK retries would consume time and tokens outside the controller's run budget
+  and make deterministic failure tests inaccurate.
+- **Decision:** Disable retries on the OpenAI client inside the adapter and apply one bounded timeout
+  per request. The Day 5 controller will decide whether another model attempt is allowed.
+- **Consequences:** Rate limits and transient network failures surface immediately as typed transport
+  errors. The controller must implement any desired backoff and account for every attempt.

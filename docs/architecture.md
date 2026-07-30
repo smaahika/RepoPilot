@@ -96,6 +96,10 @@ src/repopilot/
 ├── cli.py                 # Argument parsing and presentation only
 ├── config.py              # Environment and bounded runtime configuration
 ├── models.py              # Pydantic boundary/domain schemas
+├── model_models.py        # Structured model requests, plans, calls, and usage
+├── model_client.py        # Provider-neutral structured generation protocol
+├── openai_model.py        # Direct OpenAI Responses API adapter
+├── scripted_model.py      # Deterministic model test double
 ├── controller.py          # Orchestration and transition decisions
 ├── state_machine.py       # States, events, and legal transition table
 ├── planner.py             # Provider-neutral planning interface
@@ -117,6 +121,17 @@ create interfaces without evidence.
 Day 3 adds `process.py`, `tool_models.py`, and the `tools/` package. Pydantic request schemas reject
 unknown fields and enforce caller-facing limits. Every invoked tool returns a normalized result
 with its name, duration, typed data, or a stable error category.
+
+Day 4 adds a generic structured-generation protocol whose caller supplies the expected Pydantic
+output type. The planner owns prompt construction and inventory serialization; provider adapters
+only transport the request, validate the response, normalize usage, and translate failures. The
+scripted adapter uses the same validation path and records invocations for deterministic controller
+tests.
+
+The first provider implementation uses OpenAI's Responses API with structured outputs. It disables
+SDK retries so the future controller remains the single owner of retry budgets, applies an explicit
+request timeout, and opts out of response storage. Provider response objects and exceptions do not
+cross the adapter boundary.
 
 ## Repository preparation and baseline
 

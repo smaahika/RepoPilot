@@ -9,6 +9,22 @@ class RepoPilotError(Exception):
     """Base class for expected RepoPilot failures."""
 
 
+class ModelError(RepoPilotError):
+    """Base class for model-boundary failures."""
+
+
+class ModelTransportError(ModelError):
+    """Raised when a provider request cannot complete."""
+
+
+class ModelOutputError(ModelError):
+    """Raised when a provider returns no valid structured output."""
+
+
+class ModelScriptExhaustedError(ModelError):
+    """Raised when a scripted model receives an unexpected call."""
+
+
 class WorkspaceError(RepoPilotError):
     """Base class for workspace lifecycle failures."""
 
