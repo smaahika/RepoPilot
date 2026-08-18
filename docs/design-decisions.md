@@ -125,3 +125,35 @@ or **superseded**.
   per request. The Day 5 controller will decide whether another model attempt is allowed.
 - **Consequences:** Rate limits and transient network failures surface immediately as typed transport
   errors. The controller must implement any desired backoff and account for every attempt.
+
+## ADR-013: Execute one model-selected tool call per edit turn
+
+- **Status:** accepted
+- **Context:** A batch of model-selected actions could contain dependencies, consume an unknown
+  portion of the run budget, or continue after an earlier action invalidates later assumptions.
+- **Decision:** Each edit model response contains exactly one discriminated tool call. After the safe
+  executor returns, the controller records an observation and explicitly decides whether to remain
+  in `EDIT`, enter `VERIFY`, or fail.
+- **Consequences:** Tool ordering, accounting, and transition logs are deterministic. The loop uses
+  more model round trips, and parallel tool calls remain outside the MVP scope.
+
+## ADR-014: Normalize verification separately from tool execution
+
+- **Status:** accepted
+- **Context:** A command can execute correctly and return a nonzero exit because tests or lint
+  failed. Policy denial, timeout, and process failure have different operational meanings.
+- **Decision:** Convert command-tool results into `passed`, `failed`, `timeout`, or `error` outcomes
+  and classify supported commands as tests, lint, type checks, or other checks. Only failed checks
+  and timeouts are eligible for edit/reflection retries.
+- **Consequences:** Metrics can distinguish broken code from infrastructure and policy failures.
+  Adding another verification system requires an explicit classifier and normalization rule.
+
+## ADR-015: Detect no progress using consecutive visible diffs
+
+- **Status:** accepted
+- **Context:** A model can propose actions that succeed mechanically without changing the patch that
+  failed verification, wasting the remaining model and command budget.
+- **Decision:** Compare the repository diff after consecutive failed verification attempts. If two
+  attempts have identical visible diffs, terminate with `no_progress` before another reflection.
+- **Consequences:** The rule is deterministic and inexpensive. It does not detect semantically
+  equivalent but textually different patches; richer progress signals require benchmark evidence.

@@ -130,3 +130,8 @@ class ToolCallOutput(_BoundaryModel):
     """Structured model output containing one validated tool invocation."""
 
     tool_call: ModelToolCall
+
+
+class Reflection(_BoundaryModel):
+    diagnosis: str = Field(min_length=1, max_length=2_000)
+    next_step: str = Field(min_length=1, max_length=1_000)

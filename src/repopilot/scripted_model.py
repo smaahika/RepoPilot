@@ -10,7 +10,16 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 
 from repopilot.errors import ModelOutputError, ModelScriptExhaustedError
-from repopilot.model_models import ModelRequest, ModelResponse
+from repopilot.model_models import ModelRequest, ModelResponse, ModelUsage
+
+type ScriptedOutput = BaseModel | Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class ScriptedResponse:
+    output: ScriptedOutput
+    usage: ModelUsage | None = None
+    model_name: str = "scripted"
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,7 +31,7 @@ class ModelInvocation:
 class ScriptedModel:
     """Return queued values while preserving model-boundary validation."""
 
-    def __init__(self, responses: Iterable[BaseModel | Mapping[str, Any] | Exception]) -> None:
+    def __init__(self, responses: Iterable[ScriptedOutput | ScriptedResponse | Exception]) -> None:
         self._responses = deque(responses)
         self.invocations: list[ModelInvocation] = []
 
@@ -39,10 +48,23 @@ class ScriptedModel:
         if isinstance(scripted, Exception):
             raise scripted
 
-        candidate = scripted.model_dump() if isinstance(scripted, BaseModel) else scripted
+        if isinstance(scripted, ScriptedResponse):
+            scripted_output = scripted.output
+            response_usage = scripted.usage
+            model_name = scripted.model_name
+        else:
+            scripted_output = scripted
+            response_usage = None
+            model_name = "scripted"
+
+        candidate = (
+            scripted_output.model_dump()
+            if isinstance(scripted_output, BaseModel)
+            else scripted_output
+        )
         try:
             output = output_type.model_validate(candidate)
         except ValidationError as error:
             raise ModelOutputError("Scripted model response failed schema validation.") from error
 
-        return ModelResponse(output=output, model_name="scripted")
+        return ModelResponse(output=output, model_name=model_name, usage=response_usage)

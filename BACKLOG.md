@@ -36,16 +36,16 @@ as a small, tested commit. Scope may be reduced after the Day 7 checkpoint.
 
 ## Day 5 — Controller vertical slice
 
-- [ ] Implement states, events, transition table, and run budgets.
-- [ ] Orchestrate initialize, inspect, plan, edit, and verify phases.
-- [ ] Log every transition.
-- [ ] Complete one deterministic end-to-end run with fakes.
+- [x] Implement states, events, transition table, and run budgets.
+- [x] Orchestrate initialize, inspect, plan, edit, and verify phases.
+- [x] Log every transition.
+- [x] Complete one deterministic end-to-end run with fakes.
 
 ## Day 6 — Verification and retry loop
 
-- [ ] Normalize test and lint outcomes.
-- [ ] Add reflect/retry behavior, no-progress detection, and termination reasons.
-- [ ] Fix one intentionally broken fixture repository end to end.
+- [x] Normalize test and lint outcomes.
+- [x] Add reflect/retry behavior, no-progress detection, and termination reasons.
+- [x] Fix one intentionally broken fixture repository end to end.
 
 ## Day 7 — MVP checkpoint
 

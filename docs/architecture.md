@@ -100,9 +100,14 @@ src/repopilot/
 ├── model_client.py        # Provider-neutral structured generation protocol
 ├── openai_model.py        # Direct OpenAI Responses API adapter
 ├── scripted_model.py      # Deterministic model test double
+├── run_models.py          # Run inputs, budgets, counters, events, and results
 ├── controller.py          # Orchestration and transition decisions
 ├── state_machine.py       # States, events, and legal transition table
 ├── planner.py             # Provider-neutral planning interface
+├── editor.py              # Provider-neutral single-action selection
+├── reflection.py          # Structured correction after failed verification
+├── verification.py        # Normalized check outcomes and classification
+├── tool_executor.py       # Exhaustive validated tool-call dispatch
 ├── context.py             # Bounded context selection
 ├── policies.py            # Path, command, and budget policy
 ├── tools/
@@ -132,6 +137,54 @@ The first provider implementation uses OpenAI's Responses API with structured ou
 SDK retries so the future controller remains the single owner of retry budgets, applies an explicit
 request timeout, and opts out of response storage. Provider response objects and exceptions do not
 cross the adapter boundary.
+
+## Controller vertical slice
+
+Day 5 implements the first complete controller path:
+
+```text
+workspace → checkout/inventory → plan → tool actions → patch → diff/checks → cleanup → result
+```
+
+`state_machine.py` contains the complete transition table for this slice. The model selects one
+validated tool call at a time, but the controller dispatches it, consumes budgets, records the
+result, and chooses the next event. Successful inspection tools produce an explicit `EDIT → EDIT`
+transition; only a successful patch can enter `VERIFY`.
+
+Run budgets cover elapsed time, model calls, tool calls, and edit iterations. Counters are consumed
+before an external operation, so a call that would exceed its count limit never starts. Provider
+usage is accumulated separately from call counts. The editor receives only the three most recent
+bounded observations; ranking and richer compaction remain deferred.
+
+The verifier requires a non-empty diff and, when supplied, an allowlisted command with exit code
+zero. Transition records are available through a logging protocol and an in-memory implementation;
+durable JSONL persistence remains a later artifact milestone.
+
+The controller delays the final `COMPLETE` transition until workspace cleanup succeeds. Source
+repositories remain unchanged, durable run directories survive cleanup, and expected failures
+return a terminal result with bounded counters and categorized failure details.
+
+## Verification and retry loop
+
+Day 6 normalizes raw command execution into four outcomes: `passed`, `failed`, `timeout`, and
+`error`. A nonzero check exit is a normal failed verification rather than a tool failure. Timeouts
+remain separately measurable, while policy, spawn, and other execution errors are terminal because
+an edit cannot repair the configured command.
+
+Recoverable verification failures transition from `VERIFY` to `REFLECT`. The reflector receives a
+bounded diff and command evidence and returns a structured diagnosis plus one next step. The
+controller consumes a model-call budget before reflection, records the response, and alone decides
+whether `REFLECT → EDIT` is legal. The next editor request includes that diagnosis.
+
+Each successful patch starts one verification iteration. After a failed check, the controller
+compares the visible diff with the preceding failed attempt. Two consecutive failed iterations with
+the same diff terminate as `no_progress`; reaching the configured iteration ceiling terminates as
+`budget_exhausted`. The result preserves verification and reflection histories plus a first-class
+termination reason for reporting and benchmarks.
+
+The deterministic retry fixture intentionally produces an incorrect first patch, captures the
+pytest failure, reflects, applies a corrected patch, and passes on its second iteration. The same
+test verifies that the original source repository is unchanged.
 
 ## Repository preparation and baseline
 

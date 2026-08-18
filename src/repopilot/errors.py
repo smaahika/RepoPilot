@@ -25,6 +25,35 @@ class ModelScriptExhaustedError(ModelError):
     """Raised when a scripted model receives an unexpected call."""
 
 
+class ControllerError(RepoPilotError):
+    """Base class for deterministic run-controller failures."""
+
+
+class InvalidTransitionError(ControllerError):
+    """Raised when an event is illegal for the current run phase."""
+
+
+class RunBudgetExceededError(ControllerError):
+    """Raised before an operation would exceed a configured run budget."""
+
+    def __init__(self, budget: str, limit: int | float) -> None:
+        super().__init__(f"Run exhausted its {budget} budget of {limit}.")
+        self.budget = budget
+        self.limit = limit
+
+
+class ControllerToolError(ControllerError):
+    """Raised when a validated tool invocation fails."""
+
+
+class NoProgressError(ControllerError):
+    """Raised when consecutive failed iterations produce the same visible diff."""
+
+
+class VerificationError(ControllerError):
+    """Raised when verification fails in a way an edit cannot recover."""
+
+
 class WorkspaceError(RepoPilotError):
     """Base class for workspace lifecycle failures."""
 
