@@ -54,6 +54,10 @@ class VerificationError(ControllerError):
     """Raised when verification fails in a way an edit cannot recover."""
 
 
+class RunLoggingError(ControllerError):
+    """Raised when a transition logger cannot record an event."""
+
+
 class WorkspaceError(RepoPilotError):
     """Base class for workspace lifecycle failures."""
 

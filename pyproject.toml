@@ -20,6 +20,7 @@ dev = [
   "pytest>=8.3,<9",
   "pytest-cov>=5,<7",
   "ruff>=0.6,<1",
+  "setuptools>=69",
 ]
 
 [project.scripts]
@@ -44,4 +45,4 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["src", "tests"]
+files = ["src", "tests", "scripts"]

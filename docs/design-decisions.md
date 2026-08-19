@@ -157,3 +157,23 @@ or **superseded**.
   attempts have identical visible diffs, terminate with `no_progress` before another reflection.
 - **Consequences:** The rule is deterministic and inexpensive. It does not detect semantically
   equivalent but textually different patches; richer progress signals require benchmark evidence.
+
+## ADR-016: Record transitions before committing state
+
+- **Status:** accepted
+- **Context:** Mutating the state machine before calling a logger can leave the run in a new state
+  when logging fails, and attempting to log the resulting failure can raise repeatedly.
+- **Decision:** Validate and externally record a transition before advancing state. After a logger
+  failure, disable that logger and retain an internal terminal transition for the run result.
+- **Consequences:** `COMPLETE` implies its transition was accepted by the logger. External loggers
+  should make individual writes atomic because a logger could persist a record and then raise.
+
+## ADR-017: Defer the v0.1.0 tag until the product surface is complete
+
+- **Status:** accepted
+- **Context:** The deterministic engine passes its checkpoint, but the CLI does not yet compose a
+  run and the required patch, report, and event artifacts are not persisted.
+- **Decision:** Keep the package at `0.1.0.dev0` and withhold the `v0.1.0` tag until those two release
+  gates pass the same package and quality checkpoint.
+- **Consequences:** The repository does not overstate MVP readiness. CLI composition and artifact
+  persistence become the highest-priority post-checkpoint work.

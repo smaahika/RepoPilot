@@ -186,6 +186,18 @@ The deterministic retry fixture intentionally produces an incorrect first patch,
 pytest failure, reflects, applies a corrected patch, and passes on its second iteration. The same
 test verifies that the original source repository is unchanged.
 
+## Exception and transition boundary
+
+Expected repository, model, policy, validation, and budget failures retain actionable messages and
+map to explicit termination reasons. Unexpected dependency exceptions are caught only at the run
+boundary, sanitized to their exception type, and returned as `internal_error`; process-control
+signals such as `KeyboardInterrupt` remain outside that boundary.
+
+Transition recording validates the next state and writes to the injected logger before mutating the
+state machine. If logging raises, the recorder disables the failed logger and the controller creates
+an internal `FAILED` transition. A run therefore cannot report `COMPLETE` when its success transition
+was not recorded.
+
 ## Repository preparation and baseline
 
 ```text

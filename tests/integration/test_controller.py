@@ -5,9 +5,12 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import pytest
+from pydantic import BaseModel
+
 from repopilot.controller import RunController
 from repopilot.errors import WorkspaceSafetyError
-from repopilot.model_models import ModelUsage
+from repopilot.model_models import ModelRequest, ModelResponse, ModelUsage
 from repopilot.models import RunWorkspace
 from repopilot.repository import RepositoryService
 from repopilot.run_logging import InMemoryRunLogger
@@ -16,6 +19,7 @@ from repopilot.run_models import (
     RunBudgets,
     RunRequest,
     TerminationReason,
+    TransitionRecord,
 )
 from repopilot.scripted_model import ScriptedModel, ScriptedResponse
 from repopilot.state_machine import RunEvent, RunPhase
@@ -52,6 +56,29 @@ new file mode 100644
 class _CleanupFailingWorkspaceManager(WorkspaceManager):
     def cleanup(self, workspace: RunWorkspace) -> None:
         raise WorkspaceSafetyError("simulated cleanup failure")
+
+
+class _UnexpectedCleanupWorkspaceManager(WorkspaceManager):
+    def cleanup(self, workspace: RunWorkspace) -> None:
+        raise RuntimeError("sensitive cleanup detail")
+
+
+class _FailingRunLogger:
+    def __init__(self, fail_on: RunEvent) -> None:
+        self._fail_on = fail_on
+
+    def record_transition(self, record: TransitionRecord) -> None:
+        if record.event is self._fail_on:
+            raise RuntimeError("sensitive logger detail")
+
+
+class _InterruptingModel:
+    def generate[OutputT: BaseModel](
+        self,
+        request: ModelRequest,
+        output_type: type[OutputT],
+    ) -> ModelResponse[OutputT]:
+        raise KeyboardInterrupt
 
 
 def _create_source(root: Path) -> Path:
@@ -353,3 +380,94 @@ def test_controller_does_not_reflect_on_verification_policy_error(tmp_path: Path
     assert not result.verifications[-1].retryable
     assert result.reflections == ()
     assert len(model.invocations) == 2
+
+
+def test_controller_sanitizes_unexpected_model_failure(tmp_path: Path) -> None:
+    source = _create_source(tmp_path)
+    model = ScriptedModel([RuntimeError("sensitive provider detail")])
+    controller = RunController(
+        WorkspaceManager(tmp_path / "managed"),
+        RepositoryService(),
+        model,
+    )
+
+    result = controller.run(_request(source))
+
+    assert result.phase is RunPhase.FAILED
+    assert result.termination_reason is TerminationReason.INTERNAL_ERROR
+    assert result.failure_message == "Unexpected RuntimeError during plan."
+    assert "sensitive provider detail" not in result.failure_message
+    assert result.transitions[-1].event is RunEvent.FAILED
+
+
+def test_controller_fails_atomically_when_success_logging_fails(tmp_path: Path) -> None:
+    source = _create_source(tmp_path)
+    model = ScriptedModel([_plan(), _patch_call()])
+    controller = RunController(
+        WorkspaceManager(tmp_path / "managed"),
+        RepositoryService(),
+        model,
+        logger=_FailingRunLogger(RunEvent.VERIFICATION_PASSED),
+    )
+
+    result = controller.run(_request(source))
+
+    assert result.phase is RunPhase.FAILED
+    assert result.termination_reason is TerminationReason.LOGGING_FAILED
+    assert result.failure_message == "Transition logger raised RuntimeError."
+    assert result.transitions[-1].event is RunEvent.FAILED
+    assert RunEvent.VERIFICATION_PASSED not in [record.event for record in result.transitions]
+
+
+def test_controller_survives_logger_failure_on_failed_transition(tmp_path: Path) -> None:
+    source = _create_source(tmp_path)
+    invalid_patch = _PATCH.replace("hello world", "content that is not present")
+    model = ScriptedModel([_plan(), _patch_call(invalid_patch)])
+    controller = RunController(
+        WorkspaceManager(tmp_path / "managed"),
+        RepositoryService(),
+        model,
+        logger=_FailingRunLogger(RunEvent.FAILED),
+    )
+
+    result = controller.run(_request(source))
+
+    assert result.phase is RunPhase.FAILED
+    assert result.termination_reason is TerminationReason.EDIT_FAILED
+    assert result.failure_message is not None
+    assert "patch_rejected" in result.failure_message
+    assert "Transition logger raised RuntimeError" in result.failure_message
+    assert result.transitions[-1].event is RunEvent.FAILED
+
+
+def test_controller_sanitizes_unexpected_cleanup_failure(tmp_path: Path) -> None:
+    source = _create_source(tmp_path)
+    model = ScriptedModel([_plan(), _patch_call()])
+    controller = RunController(
+        _UnexpectedCleanupWorkspaceManager(tmp_path / "managed"),
+        RepositoryService(),
+        model,
+    )
+
+    result = controller.run(_request(source))
+
+    assert result.phase is RunPhase.FAILED
+    assert result.termination_reason is TerminationReason.CLEANUP_FAILED
+    assert result.failure_message is not None
+    assert "Unexpected RuntimeError during workspace cleanup" in result.failure_message
+    assert "sensitive cleanup detail" not in result.failure_message
+
+
+def test_controller_cleans_workspace_before_propagating_interrupt(tmp_path: Path) -> None:
+    source = _create_source(tmp_path)
+    managed = tmp_path / "managed"
+    controller = RunController(
+        WorkspaceManager(managed),
+        RepositoryService(),
+        _InterruptingModel(),
+    )
+
+    with pytest.raises(KeyboardInterrupt):
+        controller.run(_request(source))
+
+    assert not (managed / "workspaces" / "controller-test").exists()

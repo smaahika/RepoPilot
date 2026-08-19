@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass
 
 from pydantic import BaseModel, ValidationError
@@ -14,6 +15,7 @@ from repopilot.errors import (
     NoProgressError,
     RepoPilotError,
     RunBudgetExceededError,
+    RunLoggingError,
     VerificationError,
 )
 from repopilot.model_client import ModelClient
@@ -28,7 +30,7 @@ from repopilot.models import RepositoryCheckout, RunWorkspace
 from repopilot.planner import Planner, PlanningRequest
 from repopilot.reflection import ReflectionRequest, Reflector
 from repopilot.repository import RepositoryService
-from repopilot.run_logging import NullRunLogger, RunLogger
+from repopilot.run_logging import NullRunLogger, RunLogger, TransitionRecorder
 from repopilot.run_models import (
     LocalRepositorySource,
     RunBudgets,
@@ -36,7 +38,6 @@ from repopilot.run_models import (
     RunRequest,
     RunResult,
     TerminationReason,
-    TransitionRecord,
 )
 from repopilot.state_machine import RunEvent, RunPhase, RunStateMachine
 from repopilot.tool_executor import AnyToolResult, ToolExecutor
@@ -74,7 +75,7 @@ class RunController:
         machine = RunStateMachine()
         tracker = _BudgetTracker(request.budgets, self._clock)
         usage = _UsageAccumulator()
-        transitions: list[TransitionRecord] = []
+        recorder = TransitionRecorder(self._logger)
         observations: list[ToolObservation] = []
         verifications: list[VerificationResult] = []
         reflections: list[Reflection] = []
@@ -90,12 +91,12 @@ class RunController:
         try:
             workspace = self._workspaces.create(request.run_id)
             run_id = workspace.run_id
-            self._advance(machine, RunEvent.WORKSPACE_READY, run_id, tracker, transitions)
+            self._advance(machine, RunEvent.WORKSPACE_READY, run_id, tracker, recorder)
 
             checkout = self._prepare_repository(request, workspace)
             inventory = self._repository.inventory(checkout)
             tracker.check_runtime()
-            self._advance(machine, RunEvent.INVENTORY_READY, run_id, tracker, transitions)
+            self._advance(machine, RunEvent.INVENTORY_READY, run_id, tracker, recorder)
 
             tracker.consume_model_call()
             plan_response = self._planner.create_plan(
@@ -104,7 +105,7 @@ class RunController:
             usage.add(plan_response)
             plan = plan_response.output
             tracker.check_runtime()
-            self._advance(machine, RunEvent.PLAN_READY, run_id, tracker, transitions)
+            self._advance(machine, RunEvent.PLAN_READY, run_id, tracker, recorder)
 
             executor = ToolExecutor(checkout, self._repository, self._command_policy)
             while True:
@@ -135,7 +136,7 @@ class RunController:
                             RunEvent.PATCH_APPLIED,
                             run_id,
                             tracker,
-                            transitions,
+                            recorder,
                         )
                     else:
                         self._advance(
@@ -143,7 +144,7 @@ class RunController:
                             RunEvent.TOOL_COMPLETED,
                             run_id,
                             tracker,
-                            transitions,
+                            recorder,
                         )
 
                 tracker.consume_tool_call()
@@ -184,7 +185,7 @@ class RunController:
                     RunEvent.VERIFICATION_FAILED,
                     run_id,
                     tracker,
-                    transitions,
+                    recorder,
                 )
 
                 tracker.consume_model_call()
@@ -205,41 +206,71 @@ class RunController:
                     RunEvent.REFLECTION_READY,
                     run_id,
                     tracker,
-                    transitions,
+                    recorder,
                 )
         except (RepoPilotError, OSError, ValidationError) as error:
             termination_reason = _termination_reason(machine.phase, error)
             failure_message = str(error)
-            if machine.phase not in (RunPhase.COMPLETE, RunPhase.FAILED):
-                self._advance(machine, RunEvent.FAILED, run_id, tracker, transitions)
+            logging_failure = self._advance_to_failed(machine, run_id, tracker, recorder)
+            failure_message = _append_failure(failure_message, logging_failure)
+        except Exception as error:
+            termination_reason = TerminationReason.INTERNAL_ERROR
+            failure_message = _unexpected_failure(error, machine.phase.value)
+            logging_failure = self._advance_to_failed(machine, run_id, tracker, recorder)
+            failure_message = _append_failure(failure_message, logging_failure)
+        except BaseException:
+            if workspace is not None:
+                with suppress(Exception):
+                    self._workspaces.cleanup(workspace)
+            raise
 
         if workspace is not None:
             try:
                 self._workspaces.cleanup(workspace)
-            except (RepoPilotError, OSError) as error:
+            except Exception as error:
+                cleanup_message = (
+                    str(error)
+                    if isinstance(error, (RepoPilotError, OSError))
+                    else _unexpected_failure(error, "workspace cleanup")
+                )
                 if termination_reason is None:
                     termination_reason = TerminationReason.CLEANUP_FAILED
-                    failure_message = f"Workspace cleanup failed: {error}"
-                    self._advance(machine, RunEvent.FAILED, run_id, tracker, transitions)
+                    failure_message = f"Workspace cleanup failed: {cleanup_message}"
+                    logging_failure = self._advance_to_failed(
+                        machine,
+                        run_id,
+                        tracker,
+                        recorder,
+                    )
+                    failure_message = _append_failure(failure_message, logging_failure)
                 else:
-                    failure_message = f"{failure_message} Workspace cleanup also failed: {error}"
+                    failure_message = _append_failure(
+                        failure_message,
+                        f"Workspace cleanup also failed: {cleanup_message}",
+                    )
 
         if termination_reason is None:
             try:
                 tracker.check_runtime()
-            except RunBudgetExceededError as error:
-                termination_reason = TerminationReason.BUDGET_EXHAUSTED
-                failure_message = str(error)
-                self._advance(machine, RunEvent.FAILED, run_id, tracker, transitions)
-            else:
-                termination_reason = TerminationReason.SUCCESS
                 self._advance(
                     machine,
                     RunEvent.VERIFICATION_PASSED,
                     run_id,
                     tracker,
-                    transitions,
+                    recorder,
                 )
+            except RunBudgetExceededError as error:
+                termination_reason = TerminationReason.BUDGET_EXHAUSTED
+                failure_message = str(error)
+                logging_failure = self._advance_to_failed(machine, run_id, tracker, recorder)
+                failure_message = _append_failure(failure_message, logging_failure)
+            except RunLoggingError as error:
+                termination_reason = TerminationReason.LOGGING_FAILED
+                failure_message = str(error)
+                logging_failure = self._advance_to_failed(machine, run_id, tracker, recorder)
+                failure_message = _append_failure(failure_message, logging_failure)
+            else:
+                termination_reason = TerminationReason.SUCCESS
 
         assert termination_reason is not None
         return RunResult(
@@ -252,7 +283,7 @@ class RunController:
             reflections=tuple(reflections),
             counters=tracker.counters(),
             usage=usage.value(),
-            transitions=tuple(transitions),
+            transitions=tuple(recorder.records),
             failure_message=failure_message,
         )
 
@@ -271,19 +302,25 @@ class RunController:
         event: RunEvent,
         run_id: str,
         tracker: _BudgetTracker,
-        records: list[TransitionRecord],
+        recorder: TransitionRecorder,
     ) -> None:
-        transition = machine.advance(event)
-        record = TransitionRecord(
-            run_id=run_id,
-            sequence=len(records) + 1,
-            previous_phase=transition.previous_phase,
-            event=transition.event,
-            next_phase=transition.next_phase,
-            elapsed_ms=tracker.elapsed_ms,
-        )
-        records.append(record)
-        self._logger.record_transition(record)
+        recorder.advance(machine, event, run_id, tracker.elapsed_ms)
+
+    def _advance_to_failed(
+        self,
+        machine: RunStateMachine,
+        run_id: str,
+        tracker: _BudgetTracker,
+        recorder: TransitionRecorder,
+    ) -> str | None:
+        if machine.phase in (RunPhase.COMPLETE, RunPhase.FAILED):
+            return None
+        try:
+            self._advance(machine, RunEvent.FAILED, run_id, tracker, recorder)
+        except RunLoggingError as error:
+            self._advance(machine, RunEvent.FAILED, run_id, tracker, recorder)
+            return str(error)
+        return None
 
     @staticmethod
     def _require_tool_success(result: AnyToolResult) -> None:
@@ -378,6 +415,8 @@ def _termination_reason(phase: RunPhase, error: Exception) -> TerminationReason:
         return TerminationReason.BUDGET_EXHAUSTED
     if isinstance(error, NoProgressError):
         return TerminationReason.NO_PROGRESS
+    if isinstance(error, RunLoggingError):
+        return TerminationReason.LOGGING_FAILED
     return {
         RunPhase.INITIALIZE: TerminationReason.INITIALIZATION_FAILED,
         RunPhase.INSPECT: TerminationReason.INSPECTION_FAILED,
@@ -386,3 +425,15 @@ def _termination_reason(phase: RunPhase, error: Exception) -> TerminationReason:
         RunPhase.VERIFY: TerminationReason.VERIFICATION_FAILED,
         RunPhase.REFLECT: TerminationReason.EDIT_FAILED,
     }.get(phase, TerminationReason.INITIALIZATION_FAILED)
+
+
+def _unexpected_failure(error: Exception, context: str) -> str:
+    return f"Unexpected {type(error).__name__} during {context}."
+
+
+def _append_failure(message: str | None, extra: str | None) -> str | None:
+    if extra is None:
+        return message
+    if message is None:
+        return extra
+    return f"{message} {extra}"

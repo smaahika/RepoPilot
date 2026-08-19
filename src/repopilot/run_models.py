@@ -60,6 +60,8 @@ class TerminationReason(StrEnum):
     BUDGET_EXHAUSTED = "budget_exhausted"
     NO_PROGRESS = "no_progress"
     CLEANUP_FAILED = "cleanup_failed"
+    LOGGING_FAILED = "logging_failed"
+    INTERNAL_ERROR = "internal_error"
 
 
 @dataclass(frozen=True, slots=True)

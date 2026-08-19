@@ -49,18 +49,19 @@ as a small, tested commit. Scope may be reduced after the Day 7 checkpoint.
 
 ## Day 7 — MVP checkpoint
 
-- [ ] Resolve architectural debt and strengthen exception boundaries.
-- [ ] Run formatting, lint, typing, unit, and integration checks.
-- [ ] Review scope using the working vertical slice.
-- [ ] Tag `v0.1.0` only after the checkpoint is reproducible.
+- [x] Resolve architectural debt and strengthen exception boundaries.
+- [x] Run formatting, lint, typing, unit, and integration checks.
+- [x] Review scope using the working vertical slice.
+- [ ] Tag `v0.1.0` after CLI composition and durable run artifacts are complete.
 
 ## Days 8–14 — Prioritized after checkpoint
 
+- [ ] Wire validated configuration, the real provider adapter, and the controller into the CLI.
+- [ ] Persist reports, diffs, JSONL events, command logs, timing, and usage.
 - [ ] Select and add an open-source license before public release.
 - [ ] Add and document Docker isolation.
 - [ ] Add context ranking, compaction, and measurements.
 - [ ] Build 6–10 deterministic benchmark tasks and a metrics runner.
-- [ ] Persist reports, diffs, JSONL events, command logs, timing, and usage.
 - [ ] Produce the demo-focused README and architecture visuals.
 - [ ] Add CI, installation verification, and repository security checks.
 - [ ] Run final benchmarks, document failures, and prepare interview stories.

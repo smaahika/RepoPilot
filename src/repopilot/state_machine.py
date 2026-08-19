@@ -66,13 +66,17 @@ class RunStateMachine:
     def phase(self) -> RunPhase:
         return self._phase
 
-    def advance(self, event: RunEvent) -> StateTransition:
+    def next_phase(self, event: RunEvent) -> RunPhase:
+        """Validate an event and return its target without mutating state."""
         try:
-            next_phase = _TRANSITIONS[(self._phase, event)]
+            return _TRANSITIONS[(self._phase, event)]
         except KeyError as error:
             raise InvalidTransitionError(
                 f"Event {event.value!r} is invalid during phase {self._phase.value!r}."
             ) from error
+
+    def advance(self, event: RunEvent) -> StateTransition:
+        next_phase = self.next_phase(event)
         transition = StateTransition(self._phase, event, next_phase)
         self._phase = next_phase
         return transition
