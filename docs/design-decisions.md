@@ -177,3 +177,13 @@ or **superseded**.
   gates pass the same package and quality checkpoint.
 - **Consequences:** The repository does not overstate MVP readiness. CLI composition and artifact
   persistence become the highest-priority post-checkpoint work.
+
+## ADR-018: Compose production dependencies at the CLI boundary
+
+- **Status:** accepted
+- **Context:** The controller is deterministic and provider-neutral, while environment access,
+  secrets, concrete SDK clients, and terminal presentation are process-boundary concerns.
+- **Decision:** Validate environment settings once, compose concrete adapters in a dedicated module,
+  and inject the resulting application into a thin `argparse` command.
+- **Consequences:** CLI tests use a fake application without network access. The API key remains a
+  masked value until client construction, and controller/domain code stays independent of the SDK.

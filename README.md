@@ -35,14 +35,29 @@ The deterministic controller demo is covered by:
 pytest -q tests/integration/test_controller.py -k reflects_and_fixes
 ```
 
-The initial CLI surface can be inspected with:
+The CLI surface can be inspected with:
 
 ```bash
 python -m repopilot --help
 ```
 
-The controller is not yet composed into the CLI, and durable run artifacts are not yet written.
-Those are explicit release gates before the project is tagged `v0.1.0`.
+To execute the controller against a local repository, export an API key and provide a narrowly
+scoped task. The optional verification command is passed as an argument vector and must appear last:
+
+```bash
+export OPENAI_API_KEY="your-key"
+repopilot run \
+  --local-repo /path/to/repository \
+  --task "Add a CLI flag and document it." \
+  --verify pytest -q
+```
+
+RepoPilot copies the source into `~/.repopilot/workspaces`, removes that disposable copy after the
+run, and never applies the generated patch to the source repository. Public HTTPS repositories are
+accepted with `--public-repo`. Verification is optional and limited to the command allowlist.
+
+Durable run artifacts are not yet written. Artifact persistence remains the final product-surface
+gate before the project is tagged `v0.1.0`.
 
 ## Project documents
 

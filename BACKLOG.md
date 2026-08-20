@@ -56,7 +56,7 @@ as a small, tested commit. Scope may be reduced after the Day 7 checkpoint.
 
 ## Days 8–14 — Prioritized after checkpoint
 
-- [ ] Wire validated configuration, the real provider adapter, and the controller into the CLI.
+- [x] Wire validated configuration, the real provider adapter, and the controller into the CLI.
 - [ ] Persist reports, diffs, JSONL events, command logs, timing, and usage.
 - [ ] Select and add an open-source license before public release.
 - [ ] Add and document Docker isolation.

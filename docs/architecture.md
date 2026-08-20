@@ -95,6 +95,7 @@ adapter boundary.
 src/repopilot/
 ├── cli.py                 # Argument parsing and presentation only
 ├── config.py              # Environment and bounded runtime configuration
+├── composition.py         # Production adapter wiring
 ├── models.py              # Pydantic boundary/domain schemas
 ├── model_models.py        # Structured model requests, plans, calls, and usage
 ├── model_client.py        # Provider-neutral structured generation protocol

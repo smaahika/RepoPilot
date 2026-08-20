@@ -9,6 +9,10 @@ class RepoPilotError(Exception):
     """Base class for expected RepoPilot failures."""
 
 
+class ConfigurationError(RepoPilotError):
+    """Raised when runtime configuration is missing or invalid."""
+
+
 class ModelError(RepoPilotError):
     """Base class for model-boundary failures."""
 
