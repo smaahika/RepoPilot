@@ -187,3 +187,13 @@ or **superseded**.
   and inject the resulting application into a thin `argparse` command.
 - **Consequences:** CLI tests use a fake application without network access. The API key remains a
   masked value until client construction, and controller/domain code stays independent of the SDK.
+
+## ADR-019: Persist terminal evidence outside the controller
+
+- **Status:** accepted
+- **Context:** Artifact formatting and filesystem writes are required product behavior but are not
+  state-transition decisions. Mixing them into the controller would couple deterministic tests to I/O.
+- **Decision:** Wrap the controller in an application service that persists its terminal result to
+  the exact artifact directory allocated by the workspace manager.
+- **Consequences:** Success and failure use one persistence path, files are atomic and no-overwrite,
+  and persistence errors fail the outer application explicitly without changing the run outcome.

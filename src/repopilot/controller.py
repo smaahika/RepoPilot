@@ -285,6 +285,7 @@ class RunController:
             usage=usage.value(),
             transitions=tuple(recorder.records),
             failure_message=failure_message,
+            artifact_path=None if workspace is None else workspace.artifact_path,
         )
 
     def _prepare_repository(

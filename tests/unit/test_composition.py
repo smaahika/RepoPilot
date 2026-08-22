@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import SecretStr
 
+from repopilot.application import PersistingRunApplication
 from repopilot.config import RuntimeConfig
 from repopilot.controller import RunController
 from repopilot.openai_model import OpenAIModelConfig
@@ -33,9 +34,11 @@ def test_builds_controller_with_explicit_provider_secret(
         model=OpenAIModelConfig(model="gpt-test"),
     )
 
-    from repopilot.composition import build_controller
+    from repopilot.composition import build_application, build_controller
 
     controller = build_controller(config)
+    application = build_application(config)
 
     assert isinstance(controller, RunController)
+    assert isinstance(application, PersistingRunApplication)
     assert captured == {"api_key": "provider-secret", "max_retries": "0"}

@@ -95,6 +95,7 @@ class RunResult:
     usage: ModelUsage | None
     transitions: tuple[TransitionRecord, ...]
     failure_message: str | None = None
+    artifact_path: Path | None = None
 
     def __post_init__(self) -> None:
         if self.phase not in (RunPhase.COMPLETE, RunPhase.FAILED):

@@ -13,6 +13,10 @@ class ConfigurationError(RepoPilotError):
     """Raised when runtime configuration is missing or invalid."""
 
 
+class ArtifactPersistenceError(RepoPilotError):
+    """Raised when a terminal run cannot be persisted safely."""
+
+
 class ModelError(RepoPilotError):
     """Base class for model-boundary failures."""
 

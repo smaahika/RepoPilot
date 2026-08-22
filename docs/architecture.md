@@ -96,6 +96,8 @@ src/repopilot/
 ├── cli.py                 # Argument parsing and presentation only
 ├── config.py              # Environment and bounded runtime configuration
 ├── composition.py         # Production adapter wiring
+├── application.py         # Execution and artifact application services
+├── artifacts.py           # Bounded atomic run persistence
 ├── models.py              # Pydantic boundary/domain schemas
 ├── model_models.py        # Structured model requests, plans, calls, and usage
 ├── model_client.py        # Provider-neutral structured generation protocol
@@ -158,8 +160,8 @@ usage is accumulated separately from call counts. The editor receives only the t
 bounded observations; ranking and richer compaction remain deferred.
 
 The verifier requires a non-empty diff and, when supplied, an allowlisted command with exit code
-zero. Transition records are available through a logging protocol and an in-memory implementation;
-durable JSONL persistence remains a later artifact milestone.
+zero. Transition records remain available through the logging protocol and are serialized as
+versioned JSONL by the outer persistence application after the run reaches a terminal state.
 
 The controller delays the final `COMPLETE` transition until workspace cleanup succeeds. Source
 repositories remain unchanged, durable run directories survive cleanup, and expected failures
@@ -262,7 +264,7 @@ command data rather than a tool error; the verifier will interpret whether that 
 
 The local command runner is a capability boundary, not a security sandbox. Test execution runs
 repository code and cannot reliably block filesystem or network access. Docker isolation remains a
-separate Day 8 control.
+separate post-MVP control.
 
 ## Run artifacts
 
@@ -277,9 +279,10 @@ runs/<run-id>/
     └── <sequence>-<command>.log
 ```
 
-Events are append-only, timestamped, schema-versioned records. Large command output is stored in a
-bounded log and referenced by events instead of duplicated. Secret redaction occurs before data is
-written, and finalization runs on both successful and failed paths.
+Events are ordered, schema-versioned records with monotonic elapsed timing. Large command output is
+stored in a bounded log instead of duplicated in the report. Known process secrets are redacted
+before data is written, new artifact directories default to owner-only access, and finalization runs
+on both successful and failed paths.
 
 ## Known Day 1 uncertainties
 

@@ -2,6 +2,8 @@
 
 from openai import OpenAI
 
+from repopilot.application import PersistingRunApplication
+from repopilot.artifacts import FilesystemArtifactWriter
 from repopilot.config import RuntimeConfig
 from repopilot.controller import RunController
 from repopilot.openai_model import OpenAIResponsesModel
@@ -17,4 +19,15 @@ def build_controller(config: RuntimeConfig) -> RunController:
         WorkspaceManager(config.run_root),
         RepositoryService(),
         model,
+    )
+
+
+def build_application(config: RuntimeConfig) -> PersistingRunApplication:
+    """Compose production execution with durable artifact persistence."""
+    return PersistingRunApplication(
+        build_controller(config),
+        FilesystemArtifactWriter(
+            config.run_root,
+            redactions=(config.api_key.get_secret_value(),),
+        ),
     )

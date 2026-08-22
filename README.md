@@ -56,8 +56,8 @@ RepoPilot copies the source into `~/.repopilot/workspaces`, removes that disposa
 run, and never applies the generated patch to the source repository. Public HTTPS repositories are
 accepted with `--public-repo`. Verification is optional and limited to the command allowlist.
 
-Durable run artifacts are not yet written. Artifact persistence remains the final product-surface
-gate before the project is tagged `v0.1.0`.
+Every allocated run preserves a report, patch, versioned transition events, and bounded verification
+logs beneath `~/.repopilot/runs/<run-id>`. Known process secrets are redacted before persistence.
 
 ## Project documents
 

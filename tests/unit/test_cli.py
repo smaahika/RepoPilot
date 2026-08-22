@@ -10,6 +10,7 @@ import pytest
 from repopilot import __version__
 from repopilot.cli import main
 from repopilot.config import RuntimeConfig
+from repopilot.errors import ArtifactPersistenceError
 from repopilot.run_models import (
     LocalRepositorySource,
     PublicRepositorySource,
@@ -212,3 +213,21 @@ def test_failed_run_returns_one_and_writes_failure_to_stderr() -> None:
     assert exit_code == 1
     assert "verification_failed" in output.getvalue()
     assert "Tests failed." in errors.getvalue()
+
+
+def test_artifact_failure_returns_one_without_traceback() -> None:
+    errors = StringIO()
+
+    class FailingApplication(_FakeApplication):
+        def run(self, request: RunRequest) -> RunResult:
+            raise ArtifactPersistenceError("disk unavailable")
+
+    exit_code = main(
+        ["run", "--local-repo", ".", "--task", "Update docs."],
+        environ={"OPENAI_API_KEY": "secret-key"},
+        controller_factory=_Factory(FailingApplication(_result())),
+        stderr=errors,
+    )
+
+    assert exit_code == 1
+    assert errors.getvalue().strip() == "RepoPilot failed: disk unavailable"

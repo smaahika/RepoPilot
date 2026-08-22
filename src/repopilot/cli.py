@@ -91,10 +91,16 @@ def main(
         return 2
 
     if controller_factory is None:
-        from repopilot.composition import build_controller
+        from repopilot.composition import build_application
 
-        controller_factory = build_controller
-    result = controller_factory(config).run(request)
+        controller_factory = build_application
+    from repopilot.errors import RepoPilotError
+
+    try:
+        result = controller_factory(config).run(request)
+    except RepoPilotError as error:
+        print(f"RepoPilot failed: {error}", file=errors)
+        return 1
     _print_result(result, stdout=output, stderr=errors)
     return 0 if result.termination_reason is TerminationReason.SUCCESS else 1
 
@@ -155,6 +161,8 @@ def _print_result(result: RunResult, *, stdout: TextIO, stderr: TextIO) -> None:
         f"{result.counters.model_calls}; tool calls: {result.counters.tool_calls}",
         file=stdout,
     )
+    if result.artifact_path is not None:
+        print(f"Artifacts: {result.artifact_path}", file=stdout)
     if result.patch:
         print("\nPatch:\n", file=stdout, end="")
         print(result.patch.rstrip(), file=stdout)

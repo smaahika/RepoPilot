@@ -31,16 +31,17 @@ class WorkspaceManager:
                 "Run IDs must be 1-64 characters using letters, digits, underscores, or hyphens."
             )
 
-        self._workspace_parent.mkdir(parents=True, exist_ok=True)
-        self._artifact_parent.mkdir(parents=True, exist_ok=True)
+        self._base_path.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self._workspace_parent.mkdir(exist_ok=True, mode=0o700)
+        self._artifact_parent.mkdir(exist_ok=True, mode=0o700)
         root_path = self._workspace_parent / selected_run_id
         artifact_path = self._artifact_parent / selected_run_id
         root_created = False
 
         try:
-            root_path.mkdir()
+            root_path.mkdir(mode=0o700)
             root_created = True
-            artifact_path.mkdir()
+            artifact_path.mkdir(mode=0o700)
         except FileExistsError as exc:
             if root_created:
                 root_path.rmdir()

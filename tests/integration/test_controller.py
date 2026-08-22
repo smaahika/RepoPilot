@@ -8,6 +8,8 @@ from pathlib import Path
 import pytest
 from pydantic import BaseModel
 
+from repopilot.application import PersistingRunApplication
+from repopilot.artifacts import FilesystemArtifactWriter
 from repopilot.controller import RunController
 from repopilot.errors import WorkspaceSafetyError
 from repopilot.model_models import ModelRequest, ModelResponse, ModelUsage
@@ -175,7 +177,12 @@ def test_controller_completes_real_repository_vertical_slice(tmp_path: Path) -> 
         logger=logger,
     )
 
-    result = controller.run(_request(source))
+    application = PersistingRunApplication(
+        controller,
+        FilesystemArtifactWriter(managed),
+    )
+
+    result = application.run(_request(source))
 
     assert result.phase is RunPhase.COMPLETE
     assert result.termination_reason is TerminationReason.SUCCESS
@@ -199,7 +206,12 @@ def test_controller_completes_real_repository_vertical_slice(tmp_path: Path) -> 
     ]
     assert logger.records == list(result.transitions)
     assert not (managed / "workspaces" / "controller-test").exists()
-    assert (managed / "runs" / "controller-test").is_dir()
+    artifact_path = managed / "runs" / "controller-test"
+    assert result.artifact_path == artifact_path
+    assert (artifact_path / "report.md").is_file()
+    assert (artifact_path / "patch.diff").read_text(encoding="utf-8") == result.patch
+    assert (artifact_path / "events.jsonl").is_file()
+    assert (artifact_path / "commands" / "001-test.log").is_file()
     assert "hello world" in (source / "greeting.py").read_text(encoding="utf-8")
 
     read_observation = model.invocations[2].request.input

@@ -7,9 +7,9 @@ inspect it, create a structured plan, execute validated tools, apply a safe patc
 reflect on failure, retry within budgets, and return a categorized terminal result while preserving
 the source repository.
 
-The `v0.1.0` release remains gated. The CLI now composes the controller with validated configuration
-and the real provider adapter, but required report, patch, event, and command-log artifacts are not
-persisted.
+The CLI now composes the controller with validated configuration and the real provider adapter, and
+allocated runs persist the required report, patch, event, and command-log artifacts. The `v0.1.0`
+release remains gated on committing this surface and passing the release checkpoint from that commit.
 
 ## Reproduction
 
@@ -39,8 +39,7 @@ pytest -q tests/integration/test_controller.py -k reflects_and_fixes
 
 The next release-critical work is:
 
-1. Persist bounded reports, patches, transition events, command logs, timing, and model usage.
-2. Run the checkpoint through CI and tag only the commit that passes it.
+1. Run the checkpoint through CI and tag only the commit that passes it.
 
 Docker isolation, ranking, benchmarks, and presentation work remain important but do not replace
 those missing product surfaces.
