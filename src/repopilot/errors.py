@@ -1,4 +1,4 @@
-"""Typed failures raised by RepoPilot's repository boundary."""
+"""Typed expected failures raised across RepoPilot boundaries."""
 
 from __future__ import annotations
 
@@ -15,6 +15,10 @@ class ConfigurationError(RepoPilotError):
 
 class ArtifactPersistenceError(RepoPilotError):
     """Raised when a terminal run cannot be persisted safely."""
+
+
+class EvaluationError(RepoPilotError):
+    """Raised when a benchmark suite cannot be loaded or executed."""
 
 
 class ModelError(RepoPilotError):

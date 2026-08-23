@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "suite": "offline_replay_v1",
+  "mode": "scripted_replay",
+  "summary": {
+    "total_cases": 8,
+    "expectations_met": 8,
+    "task_successes": 6,
+    "expectation_pass_rate": 1.0,
+    "task_success_rate": 0.75,
+    "total_model_calls": 24,
+    "total_tool_calls": 31,
+    "total_iterations": 8,
+    "total_duration_ms": 3394,
+    "total_input_tokens": null,
+    "context_original_chars": 9984,
+    "context_selected_chars": 12462
+  },
+  "results": [
+    {
+      "case_id": "update_greeting",
+      "expectation_met": true,
+      "task_succeeded": true,
+      "termination_reason": "success",
+      "verification_statuses": [
+        "passed"
+      ],
+      "changed_files": [
+        "greeting.py"
+      ],
+      "failures": [],
+      "run_failure_message": null,
+      "model_calls": 3,
+      "tool_calls": 4,
+      "iterations": 1,
+      "duration_ms": 875,
+      "input_tokens": null,
+      "context_original_chars": 953,
+      "context_selected_chars": 1264
+    },
+    {
+      "case_id": "fix_double",
+      "expectation_met": true,
+      "task_succeeded": true,
+      "termination_reason": "success",
+      "verification_statuses": [
+        "passed"
+      ],
+      "changed_files": [
+        "calc.py"
+      ],
+      "failures": [],
+      "run_failure_message": null,
+      "model_calls": 3,
+      "tool_calls": 4,
+      "iterations": 1,
+      "duration_ms": 474,
+      "input_tokens": null,
+      "context_original_chars": 980,
+      "context_selected_chars": 1291
+    },
+    {
+      "case_id": "implement_slugify",
+      "expectation_met": true,
+      "task_succeeded": true,
+      "termination_reason": "success",
+      "verification_statuses": [
+        "passed"
+      ],
+      "changed_files": [
+        "text.py"
+      ],
+      "failures": [],
+      "run_failure_message": null,
+      "model_calls": 3,
+      "tool_calls": 4,
+      "iterations": 1,
+      "duration_ms": 296,
+      "input_tokens": null,
+      "context_original_chars": 1089,
+      "context_selected_chars": 1400
+    },
+    {
+      "case_id": "raise_retry_limit",
+      "expectation_met": true,
+      "task_succeeded": true,
+      "termination_reason": "success",
+      "verification_statuses": [
+        "passed"
+      ],
+      "changed_files": [
+        "settings.py"
+      ],
+      "failures": [],
+      "run_failure_message": null,
+      "model_calls": 3,
+      "tool_calls": 4,
+      "iterations": 1,
+      "duration_ms": 349,
+      "input_tokens": null,
+      "context_original_chars": 1202,
+      "context_selected_chars": 1513
+    },
+    {
+      "case_id": "update_two_modules",
+      "expectation_met": true,
+      "task_succeeded": true,
+      "termination_reason": "success",
+      "verification_statuses": [
+        "passed"
+      ],
+      "changed_files": [
+        "constants.py",
+        "message.py"
+      ],
+      "failures": [],
+      "run_failure_message": null,
+      "model_calls": 4,
+      "tool_calls": 5,
+      "iterations": 1,
+      "duration_ms": 361,
+      "input_tokens": null,
+      "context_original_chars": 1973,
+      "context_selected_chars": 2399
+    },
+    {
+      "case_id": "recover_after_failure",
+      "expectation_met": true,
+      "task_succeeded": true,
+      "termination_reason": "success",
+      "verification_statuses": [
+        "failed",
+        "passed"
+      ],
+      "changed_files": [
+        "status.py"
+      ],
+      "failures": [],
+      "run_failure_message": null,
+      "model_calls": 4,
+      "tool_calls": 6,
+      "iterations": 2,
+      "duration_ms": 543,
+      "input_tokens": null,
+      "context_original_chars": 2945,
+      "context_selected_chars": 3361
+    },
+    {
+      "case_id": "reject_ungrounded_patch",
+      "expectation_met": true,
+      "task_succeeded": false,
+      "termination_reason": "edit_failed",
+      "verification_statuses": [],
+      "changed_files": [],
+      "failures": [],
+      "run_failure_message": "Tool 'write_patch' failed with patch_rejected: git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead\nerror: patch failed: value.py:1\nerror: value.py: patch does not apply",
+      "model_calls": 2,
+      "tool_calls": 1,
+      "iterations": 0,
+      "duration_ms": 90,
+      "input_tokens": null,
+      "context_original_chars": 409,
+      "context_selected_chars": 605
+    },
+    {
+      "case_id": "exhaust_retry_budget",
+      "expectation_met": true,
+      "task_succeeded": false,
+      "termination_reason": "budget_exhausted",
+      "verification_statuses": [
+        "failed"
+      ],
+      "changed_files": [
+        "feature.py"
+      ],
+      "failures": [],
+      "run_failure_message": "Run exhausted its iterations budget of 1.",
+      "model_calls": 2,
+      "tool_calls": 3,
+      "iterations": 1,
+      "duration_ms": 406,
+      "input_tokens": null,
+      "context_original_chars": 433,
+      "context_selected_chars": 629
+    }
+  ]
+}

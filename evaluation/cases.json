@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "name": "offline_replay_v1",
+  "cases": [
+    {
+      "id": "update_greeting",
+      "task": "Change greeting() to return hello RepoPilot.",
+      "files": [
+        {
+          "path": "greeting.py",
+          "content": "def greeting() -> str:\n    return \"hello\"\n"
+        },
+        {
+          "path": "test_greeting.py",
+          "content": "from greeting import greeting\n\n\ndef test_greeting() -> None:\n    assert greeting() == \"hello RepoPilot\"\n"
+        }
+      ],
+      "verification": {"argv": ["pytest", "-q", "-p", "no:cacheprovider"], "timeout_seconds": 30},
+      "scripted_responses": [
+        {
+          "summary": "Update the greeting and verify it.",
+          "steps": [{"id": "update", "objective": "Change greeting().", "files": ["greeting.py"], "verification": ["pytest -q"]}],
+          "assumptions": []
+        },
+        {"tool_call": {"call_id": "read", "tool_name": "read_file", "arguments": {"path": "greeting.py"}}},
+        {"tool_call": {"call_id": "patch", "tool_name": "write_patch", "arguments": {"patch": "diff --git a/greeting.py b/greeting.py\n--- a/greeting.py\n+++ b/greeting.py\n@@ -1,2 +1,2 @@\n def greeting() -> str:\n-    return \"hello\"\n+    return \"hello RepoPilot\"\n"}}}
+      ],
+      "expected": {
+        "termination_reason": "success",
+        "changed_files": ["greeting.py"],
+        "verification_statuses": ["passed"],
+        "patch_contains": ["+    return \"hello RepoPilot\""],
+        "patch_excludes": ["+    return \"hello\""]
+      }
+    },
+    {
+      "id": "fix_double",
+      "task": "Fix double() so it returns twice the supplied integer.",
+      "files": [
+        {"path": "calc.py", "content": "def double(value: int) -> int:\n    return value\n"},
+        {"path": "test_calc.py", "content": "from calc import double\n\n\ndef test_double() -> None:\n    assert double(4) == 8\n"}
+      ],
+      "verification": {"argv": ["pytest", "-q", "-p", "no:cacheprovider"], "timeout_seconds": 30},
+      "scripted_responses": [
+        {
+          "summary": "Correct the arithmetic implementation.",
+          "steps": [{"id": "fix", "objective": "Multiply the input by two.", "files": ["calc.py"], "verification": ["pytest -q"]}],
+          "assumptions": []
+        },
+        {"tool_call": {"call_id": "read", "tool_name": "read_file", "arguments": {"path": "calc.py"}}},
+        {"tool_call": {"call_id": "patch", "tool_name": "write_patch", "arguments": {"patch": "diff --git a/calc.py b/calc.py\n--- a/calc.py\n+++ b/calc.py\n@@ -1,2 +1,2 @@\n def double(value: int) -> int:\n-    return value\n+    return value * 2\n"}}}
+      ],
+      "expected": {
+        "termination_reason": "success",
+        "changed_files": ["calc.py"],
+        "verification_statuses": ["passed"],
+        "patch_contains": ["+    return value * 2"]
+      }
+    },
+    {
+      "id": "implement_slugify",
+      "task": "Implement slugify() using lowercase words joined by hyphens.",
+      "files": [
+        {"path": "text.py", "content": "def slugify(value: str) -> str:\n    raise NotImplementedError\n"},
+        {"path": "test_text.py", "content": "from text import slugify\n\n\ndef test_slugify() -> None:\n    assert slugify(\"Hello Repo Pilot\") == \"hello-repo-pilot\"\n"}
+      ],
+      "verification": {"argv": ["pytest", "-q", "-p", "no:cacheprovider"], "timeout_seconds": 30},
+      "scripted_responses": [
+        {
+          "summary": "Implement the missing text transformation.",
+          "steps": [{"id": "implement", "objective": "Normalize and join words.", "files": ["text.py"], "verification": ["pytest -q"]}],
+          "assumptions": ["Whitespace separates words."]
+        },
+        {"tool_call": {"call_id": "read", "tool_name": "read_file", "arguments": {"path": "text.py"}}},
+        {"tool_call": {"call_id": "patch", "tool_name": "write_patch", "arguments": {"patch": "diff --git a/text.py b/text.py\n--- a/text.py\n+++ b/text.py\n@@ -1,2 +1,2 @@\n def slugify(value: str) -> str:\n-    raise NotImplementedError\n+    return \"-\".join(value.lower().split())\n"}}}
+      ],
+      "expected": {
+        "termination_reason": "success",
+        "changed_files": ["text.py"],
+        "verification_statuses": ["passed"],
+        "patch_contains": ["+    return \"-\".join(value.lower().split())"]
+      }
+    },
+    {
+      "id": "raise_retry_limit",
+      "task": "Raise RETRY_LIMIT from 2 to 4.",
+      "files": [
+        {"path": "settings.py", "content": "RETRY_LIMIT = 2\n"},
+        {"path": "test_settings.py", "content": "from settings import RETRY_LIMIT\n\n\ndef test_retry_limit() -> None:\n    assert RETRY_LIMIT == 4\n"}
+      ],
+      "verification": {"argv": ["pytest", "-q", "-p", "no:cacheprovider"], "timeout_seconds": 30},
+      "scripted_responses": [
+        {
+          "summary": "Locate and update the retry setting.",
+          "steps": [{"id": "update", "objective": "Change the configured limit.", "files": ["settings.py"], "verification": ["pytest -q"]}],
+          "assumptions": []
+        },
+        {"tool_call": {"call_id": "search", "tool_name": "search_text", "arguments": {"query": "RETRY_LIMIT", "root": "."}}},
+        {"tool_call": {"call_id": "patch", "tool_name": "write_patch", "arguments": {"patch": "diff --git a/settings.py b/settings.py\n--- a/settings.py\n+++ b/settings.py\n@@ -1 +1 @@\n-RETRY_LIMIT = 2\n+RETRY_LIMIT = 4\n"}}}
+      ],
+      "expected": {
+        "termination_reason": "success",
+        "changed_files": ["settings.py"],
+        "verification_statuses": ["passed"],
+        "patch_contains": ["+RETRY_LIMIT = 4"]
+      }
+    },
+    {
+      "id": "update_two_modules",
+      "task": "Rename the app to RepoPilot and make ready_message() end with an exclamation mark.",
+      "files": [
+        {"path": "constants.py", "content": "APP_NAME = \"OldApp\"\n"},
+        {"path": "message.py", "content": "from constants import APP_NAME\n\n\ndef ready_message() -> str:\n    return f\"{APP_NAME} ready\"\n"},
+        {"path": "test_message.py", "content": "from message import ready_message\n\n\ndef test_ready_message() -> None:\n    assert ready_message() == \"RepoPilot ready!\"\n"}
+      ],
+      "verification": {"argv": ["pytest", "-q", "-p", "no:cacheprovider"], "timeout_seconds": 30},
+      "scripted_responses": [
+        {
+          "summary": "Update the shared name and message formatting.",
+          "steps": [{"id": "update", "objective": "Change both modules.", "files": ["constants.py", "message.py"], "verification": ["pytest -q"]}],
+          "assumptions": []
+        },
+        {"tool_call": {"call_id": "read-constants", "tool_name": "read_file", "arguments": {"path": "constants.py"}}},
+        {"tool_call": {"call_id": "read-message", "tool_name": "read_file", "arguments": {"path": "message.py"}}},
+        {"tool_call": {"call_id": "patch", "tool_name": "write_patch", "arguments": {"patch": "diff --git a/constants.py b/constants.py\n--- a/constants.py\n+++ b/constants.py\n@@ -1 +1 @@\n-APP_NAME = \"OldApp\"\n+APP_NAME = \"RepoPilot\"\ndiff --git a/message.py b/message.py\n--- a/message.py\n+++ b/message.py\n@@ -2,4 +2,4 @@ from constants import APP_NAME\n \n \n def ready_message() -> str:\n-    return f\"{APP_NAME} ready\"\n+    return f\"{APP_NAME} ready!\"\n"}}}
+      ],
+      "expected": {
+        "termination_reason": "success",
+        "changed_files": ["constants.py", "message.py"],
+        "verification_statuses": ["passed"],
+        "patch_contains": ["+APP_NAME = \"RepoPilot\"", "+    return f\"{APP_NAME} ready!\""]
+      }
+    },
+    {
+      "id": "recover_after_failure",
+      "task": "Change status() to return ready.",
+      "files": [
+        {"path": "status.py", "content": "def status() -> str:\n    return \"pending\"\n"},
+        {"path": "test_status.py", "content": "from status import status\n\n\ndef test_status() -> None:\n    assert status() == \"ready\"\n"}
+      ],
+      "verification": {"argv": ["pytest", "-q", "-p", "no:cacheprovider"], "timeout_seconds": 30},
+      "scripted_responses": [
+        {
+          "summary": "Update status and verify it.",
+          "steps": [{"id": "update", "objective": "Return the requested status.", "files": ["status.py"], "verification": ["pytest -q"]}],
+          "assumptions": []
+        },
+        {"tool_call": {"call_id": "wrong", "tool_name": "write_patch", "arguments": {"patch": "diff --git a/status.py b/status.py\n--- a/status.py\n+++ b/status.py\n@@ -1,2 +1,2 @@\n def status() -> str:\n-    return \"pending\"\n+    return \"running\"\n"}}},
+        {"diagnosis": "The test expects ready, not running.", "next_step": "Replace running with ready."},
+        {"tool_call": {"call_id": "correct", "tool_name": "write_patch", "arguments": {"patch": "diff --git a/status.py b/status.py\n--- a/status.py\n+++ b/status.py\n@@ -1,2 +1,2 @@\n def status() -> str:\n-    return \"running\"\n+    return \"ready\"\n"}}}
+      ],
+      "expected": {
+        "termination_reason": "success",
+        "changed_files": ["status.py"],
+        "verification_statuses": ["failed", "passed"],
+        "patch_contains": ["+    return \"ready\""],
+        "patch_excludes": ["+    return \"running\""]
+      }
+    },
+    {
+      "id": "reject_ungrounded_patch",
+      "task": "Change value() to return 2.",
+      "files": [
+        {"path": "value.py", "content": "def value() -> int:\n    return 1\n"},
+        {"path": "test_value.py", "content": "from value import value\n\n\ndef test_value() -> None:\n    assert value() == 2\n"}
+      ],
+      "verification": {"argv": ["pytest", "-q", "-p", "no:cacheprovider"], "timeout_seconds": 30},
+      "scripted_responses": [
+        {
+          "summary": "Update the returned value.",
+          "steps": [{"id": "update", "objective": "Return two.", "files": ["value.py"], "verification": ["pytest -q"]}],
+          "assumptions": []
+        },
+        {"tool_call": {"call_id": "invalid", "tool_name": "write_patch", "arguments": {"patch": "diff --git a/value.py b/value.py\n--- a/value.py\n+++ b/value.py\n@@ -1,2 +1,2 @@\n def value() -> int:\n-    return 0\n+    return 2\n"}}}
+      ],
+      "expected": {
+        "termination_reason": "edit_failed",
+        "changed_files": [],
+        "verification_statuses": []
+      }
+    },
+    {
+      "id": "exhaust_retry_budget",
+      "task": "Enable feature_enabled().",
+      "files": [
+        {"path": "feature.py", "content": "def feature_enabled() -> bool:\n    return False\n"},
+        {"path": "test_feature.py", "content": "from feature import feature_enabled\n\n\ndef test_feature() -> None:\n    assert feature_enabled() is True\n"}
+      ],
+      "verification": {"argv": ["pytest", "-q", "-p", "no:cacheprovider"], "timeout_seconds": 30},
+      "budgets": {"max_runtime_seconds": 600, "max_model_calls": 8, "max_tool_calls": 20, "max_iterations": 1},
+      "scripted_responses": [
+        {
+          "summary": "Enable the feature and verify it.",
+          "steps": [{"id": "enable", "objective": "Return the enabled state.", "files": ["feature.py"], "verification": ["pytest -q"]}],
+          "assumptions": []
+        },
+        {"tool_call": {"call_id": "wrong", "tool_name": "write_patch", "arguments": {"patch": "diff --git a/feature.py b/feature.py\n--- a/feature.py\n+++ b/feature.py\n@@ -1,2 +1,2 @@\n def feature_enabled() -> bool:\n-    return False\n+    return None\n"}}}
+      ],
+      "expected": {
+        "termination_reason": "budget_exhausted",
+        "changed_files": ["feature.py"],
+        "verification_statuses": ["failed"],
+        "patch_contains": ["+    return None"]
+      }
+    }
+  ]
+}

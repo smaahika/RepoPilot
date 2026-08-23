@@ -41,5 +41,5 @@ The next release-critical work is:
 
 1. Run the checkpoint through CI and tag only the commit that passes it.
 
-Benchmarks, licensing, CI, and presentation work remain before final release polish. Context ranking
-and measurements are implemented, but their heuristic quality remains a benchmark question.
+Licensing, CI, and presentation work remain before final release polish. The deterministic replay
+benchmark is implemented; real-model quality and context-policy tuning remain evaluation questions.

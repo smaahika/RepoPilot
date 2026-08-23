@@ -99,6 +99,7 @@ src/repopilot/
 ├── application.py         # Execution and artifact application services
 ├── artifacts.py           # Bounded atomic run persistence
 ├── sandbox.py             # Optional Docker command backend
+├── evaluation.py          # Versioned cases, outcome comparison, and aggregate metrics
 ├── models.py              # Pydantic boundary/domain schemas
 ├── model_models.py        # Structured model requests, plans, calls, and usage
 ├── model_client.py        # Provider-neutral structured generation protocol
@@ -273,6 +274,18 @@ interface as local execution, so controller behavior does not branch on isolatio
 Docker still shares the host kernel and trusts the Docker daemon and selected image. Resource
 enforcement varies by platform, and read-only mounts are incompatible with suites that require
 in-tree build output. The complete threat boundary is documented in `docs/docker-sandbox.md`.
+
+## Evaluation boundary
+
+The offline evaluation runner materializes each versioned case as a fresh Git repository and invokes
+the same controller, repository service, tools, and verification path used by normal runs. Case
+expectations inspect terminal reason, changed paths, verification sequence, and patch fragments.
+Harness expectation matches and successful repository tasks are reported separately so expected
+safety or budget failures cannot inflate the task-success rate.
+
+Scripted responses make the baseline deterministic and network-free, but they encode the actions to
+take. The baseline therefore detects orchestration regressions rather than model capability. The
+case and result schemas can support a later live-model runner with repeated trials and model metadata.
 
 ## Run artifacts
 

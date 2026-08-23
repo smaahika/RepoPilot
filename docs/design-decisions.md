@@ -220,3 +220,16 @@ or **superseded**.
 - **Consequences:** Context size is predictable without another model or provider dependency. The
   heuristics can omit useful evidence, character counts only approximate tokens, and benchmark
   results must guide future weight or budget changes.
+
+## ADR-022: Separate replay conformance from task success
+
+- **Status:** accepted
+- **Context:** Deterministic failure cases are valuable regression coverage, but counting an expected
+  failure as a successful task would inflate agent-quality metrics. Scripted responses also cannot
+  establish real-model coding capability.
+- **Decision:** Version fixtures and expected observable outcomes, run them through the production
+  controller path, and report expectation matches separately from successful terminations. Identify
+  the initial mode explicitly as scripted replay.
+- **Consequences:** The suite is reproducible, offline, and exercises failure behavior without hiding
+  it. Its 75% task-success rate is not a model score; live evaluation requires repeated trials,
+  provider metadata, usage, cost, and variance.

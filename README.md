@@ -35,6 +35,15 @@ The deterministic controller demo is covered by:
 pytest -q tests/integration/test_controller.py -k reflects_and_fixes
 ```
 
+The eight-case offline agent benchmark runs with:
+
+```bash
+python scripts/evaluate.py
+```
+
+Its checked-in baseline distinguishes 8/8 expected behaviors from 6/8 genuinely successful tasks;
+see the [evaluation methodology](docs/evaluation.md) for why those numbers are intentionally separate.
+
 The CLI surface can be inspected with:
 
 ```bash
@@ -88,6 +97,7 @@ It does not turn Docker into a production security boundary; see the
 - [MVP checkpoint](docs/mvp-checkpoint.md)
 - [Docker threat model](docs/docker-sandbox.md)
 - [Context management](docs/context-management.md)
+- [Evaluation methodology and baseline](docs/evaluation.md)
 
 The README will become the full quick start and demo landing page after the core workflow is
 executable. Current milestones are tracked in the backlog rather than advertised as completed.
