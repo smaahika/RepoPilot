@@ -83,6 +83,20 @@ class TransitionRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class ContextMetric:
+    operation: str
+    original_chars: int
+    selected_chars: int
+    compacted_items: int
+
+    def __post_init__(self) -> None:
+        if not self.operation:
+            raise ValueError("context metric operation cannot be empty")
+        if min(self.original_chars, self.selected_chars, self.compacted_items) < 0:
+            raise ValueError("context metric counts cannot be negative")
+
+
+@dataclass(frozen=True, slots=True)
 class RunResult:
     run_id: str
     phase: RunPhase
@@ -96,6 +110,7 @@ class RunResult:
     transitions: tuple[TransitionRecord, ...]
     failure_message: str | None = None
     artifact_path: Path | None = None
+    context_metrics: tuple[ContextMetric, ...] = ()
 
     def __post_init__(self) -> None:
         if self.phase not in (RunPhase.COMPLETE, RunPhase.FAILED):

@@ -211,6 +211,32 @@ class FilesystemArtifactWriter:
                     f"- Total tokens: {result.usage.total_tokens}",
                 ]
             )
+        lines.extend(["", "## Context Selection", ""])
+        if not result.context_metrics:
+            lines.append("No model context was assembled.")
+        else:
+            original = sum(metric.original_chars for metric in result.context_metrics)
+            selected = sum(metric.selected_chars for metric in result.context_metrics)
+            change = 0 if original == 0 else round((1 - selected / original) * 100)
+            change_label = (
+                f"Character reduction: {change}%"
+                if change >= 0
+                else f"Character increase: {-change}%"
+            )
+            lines.extend(
+                [
+                    f"- Original input characters: {original}",
+                    f"- Selected input characters: {selected}",
+                    f"- {change_label}",
+                    "- Compacted items: "
+                    f"{sum(metric.compacted_items for metric in result.context_metrics)}",
+                ]
+            )
+            for metric in result.context_metrics:
+                lines.append(
+                    f"- `{metric.operation}`: {metric.original_chars} → "
+                    f"{metric.selected_chars} characters"
+                )
         if result.reflections:
             lines.extend(["", "## Reflections", ""])
             for reflection in result.reflections:

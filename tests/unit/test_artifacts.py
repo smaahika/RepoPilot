@@ -12,6 +12,7 @@ from repopilot.artifacts import FilesystemArtifactWriter
 from repopilot.errors import ArtifactPersistenceError
 from repopilot.model_models import ImplementationPlan, ModelUsage, PlanStep, Reflection
 from repopilot.run_models import (
+    ContextMetric,
     LocalRepositorySource,
     RunCounters,
     RunRequest,
@@ -100,6 +101,14 @@ def _result(artifact_path: Path, *, success: bool = True) -> RunResult:
         ),
         failure_message=None if success else f"Verification failed with {_SECRET}.",
         artifact_path=artifact_path,
+        context_metrics=(
+            ContextMetric(
+                operation="create_plan",
+                original_chars=1_000,
+                selected_chars=400,
+                compacted_items=8,
+            ),
+        ),
     )
 
 
@@ -125,6 +134,7 @@ def test_writes_complete_artifact_set_and_redacts_known_secret(tmp_path: Path) -
     report = (artifact_path / "report.md").read_text(encoding="utf-8")
     assert "Status: `success`" in report
     assert "Total tokens: 15" in report
+    assert "Character reduction: 60%" in report
     assert "commands/001-test.log" in report
     assert _SECRET not in report
     assert _SECRET not in (artifact_path / "patch.diff").read_text(encoding="utf-8")

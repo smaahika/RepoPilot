@@ -112,7 +112,7 @@ src/repopilot/
 ├── reflection.py          # Structured correction after failed verification
 ├── verification.py        # Normalized check outcomes and classification
 ├── tool_executor.py       # Exhaustive validated tool-call dispatch
-├── context.py             # Bounded context selection
+├── context.py             # Ranked context selection, compaction, and metrics
 ├── policies.py            # Path, command, and budget policy
 ├── tools/
 │   ├── filesystem.py
@@ -157,8 +157,9 @@ transition; only a successful patch can enter `VERIFY`.
 
 Run budgets cover elapsed time, model calls, tool calls, and edit iterations. Counters are consumed
 before an external operation, so a call that would exceed its count limit never starts. Provider
-usage is accumulated separately from call counts. The editor receives only the three most recent
-bounded observations; ranking and richer compaction remain deferred.
+usage is accumulated separately from call counts. One context session per run ranks the planning
+inventory, retains bounded evidence for the three most recent tool observations, and summarizes
+older completed actions without claiming that a plan step is finished.
 
 The verifier requires a non-empty diff and, when supplied, an allowlisted command with exit code
 zero. Transition records remain available through the logging protocol and are serialized as
@@ -175,8 +176,9 @@ Day 6 normalizes raw command execution into four outcomes: `passed`, `failed`, `
 remain separately measurable, while policy, spawn, and other execution errors are terminal because
 an edit cannot repair the configured command.
 
-Recoverable verification failures transition from `VERIFY` to `REFLECT`. The reflector receives a
-bounded diff and command evidence and returns a structured diagnosis plus one next step. The
+Recoverable verification failures transition from `VERIFY` to `REFLECT`. The reflector receives
+diff headers, hunk locations, changed lines, and the bounded tail of command evidence, then returns
+a structured diagnosis plus one next step. The
 controller consumes a model-call budget before reflection, records the response, and alone decides
 whether `REFLECT → EDIT` is legal. The next editor request includes that diagnosis.
 
@@ -288,12 +290,13 @@ runs/<run-id>/
 Events are ordered, schema-versioned records with monotonic elapsed timing. Large command output is
 stored in a bounded log instead of duplicated in the report. Known process secrets are redacted
 before data is written, new artifact directories default to owner-only access, and finalization runs
-on both successful and failed paths.
+on both successful and failed paths. Reports also aggregate exact character counts before and after
+context selection for each model operation; provider token counts remain separate usage evidence.
 
 ## Known Day 1 uncertainties
 
 - Supported project types and command-detection rules will be narrowed during verification work.
-- Live Docker behavior and cross-platform enforcement require validation on a Docker-enabled host.
+- Docker behavior is live-tested on macOS; cross-platform enforcement still requires validation.
 - Patch application may use a Git subprocess or a Python implementation; Day 2 tests should drive
   that choice.
-- Context ranking and model prompt shape require benchmark evidence and remain deferred.
+- Context ranking weights and prompt shape remain provisional until benchmark evidence is available.

@@ -7,6 +7,7 @@ from dataclasses import asdict
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from repopilot.context import ContextSession
 from repopilot.model_client import ModelClient
 from repopilot.model_models import (
     ImplementationPlan,
@@ -20,6 +21,7 @@ from repopilot.tool_executor import AnyToolResult
 _MAX_OBSERVATION_CHARS = 50_000
 _EDITOR_INSTRUCTIONS = """Implement the task by selecting exactly one available tool call.
 Use repository evidence from prior tool results; do not invent file contents.
+Older completed actions may be summaries; reread evidence when their content is needed.
 Read or search before editing when needed, and use write_patch only for a grounded change.
 The controller decides state transitions and verification; you only select the next tool."""
 
@@ -55,7 +57,7 @@ class EditRequest(BaseModel):
 
     task: str = Field(min_length=1, max_length=10_000)
     plan: ImplementationPlan
-    observations: tuple[ToolObservation, ...] = Field(max_length=20)
+    observations: tuple[ToolObservation, ...] = Field(max_length=100)
     reflection: Reflection | None = None
 
 
@@ -63,13 +65,24 @@ class Editor:
     def __init__(self, model: ModelClient) -> None:
         self._model = model
 
-    def next_tool_call(self, request: EditRequest) -> ModelResponse[ToolCallOutput]:
+    def next_tool_call(
+        self,
+        request: EditRequest,
+        *,
+        context: ContextSession | None = None,
+    ) -> ModelResponse[ToolCallOutput]:
         """Ask for one structured action using bounded execution history."""
+        session = context or ContextSession()
         return self._model.generate(
             ModelRequest(
                 operation="select_tool",
                 instructions=_EDITOR_INSTRUCTIONS,
-                input=request.model_dump_json(),
+                input=session.editing_input(
+                    request.task,
+                    request.plan,
+                    request.observations,
+                    request.reflection,
+                ),
             ),
             ToolCallOutput,
         )

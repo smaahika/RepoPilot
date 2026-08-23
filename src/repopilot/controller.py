@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, ValidationError
 
+from repopilot.context import ContextPolicy, ContextSession
 from repopilot.editor import Editor, EditRequest, ToolObservation
 from repopilot.errors import (
     ControllerToolError,
@@ -46,8 +47,6 @@ from repopilot.tools.shell import CommandBackend, CommandPolicy
 from repopilot.verification import VerificationResult, normalize_command, verify_diff
 from repopilot.workspace import WorkspaceManager
 
-_MAX_RECENT_OBSERVATIONS = 3
-
 
 class RunController:
     """Own run state, budgets, model calls, tools, retries, and termination."""
@@ -61,6 +60,7 @@ class RunController:
         logger: RunLogger | None = None,
         command_policy: CommandPolicy | None = None,
         command_backend: CommandBackend | None = None,
+        context_policy: ContextPolicy | None = None,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._workspaces = workspaces
@@ -71,6 +71,7 @@ class RunController:
         self._logger = logger or NullRunLogger()
         self._command_policy = command_policy
         self._command_backend = command_backend
+        self._context_policy = context_policy or ContextPolicy()
         self._clock = clock
 
     def run(self, request: RunRequest) -> RunResult:
@@ -89,6 +90,7 @@ class RunController:
         termination_reason: TerminationReason | None = None
         failure_message: str | None = None
         run_id = request.run_id or "unallocated"
+        context = ContextSession(self._context_policy)
 
         try:
             workspace = self._workspaces.create(request.run_id)
@@ -102,7 +104,8 @@ class RunController:
 
             tracker.consume_model_call()
             plan_response = self._planner.create_plan(
-                PlanningRequest(task=request.task, inventory=inventory)
+                PlanningRequest(task=request.task, inventory=inventory),
+                context=context,
             )
             usage.add(plan_response)
             plan = plan_response.output
@@ -122,9 +125,10 @@ class RunController:
                         EditRequest(
                             task=request.task,
                             plan=plan,
-                            observations=tuple(observations[-_MAX_RECENT_OBSERVATIONS:]),
+                            observations=tuple(observations),
                             reflection=current_reflection,
-                        )
+                        ),
+                        context=context,
                     )
                     usage.add(action_response)
                     tracker.check_runtime()
@@ -202,7 +206,8 @@ class RunController:
                         plan,
                         patch,
                         verification,
-                    )
+                    ),
+                    context=context,
                 )
                 usage.add(reflection_response)
                 current_reflection = reflection_response.output
@@ -293,6 +298,7 @@ class RunController:
             transitions=tuple(recorder.records),
             failure_message=failure_message,
             artifact_path=None if workspace is None else workspace.artifact_path,
+            context_metrics=context.metrics,
         )
 
     def _prepare_repository(

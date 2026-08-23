@@ -207,3 +207,16 @@ or **superseded**.
   retains application policy while applying fixed isolation and resource flags.
 - **Consequences:** The controller and normalized results remain unchanged. Docker users must build
   or select a trusted dependency image, and live platform behavior requires separate verification.
+
+## ADR-021: Bound context with deterministic, measurable heuristics
+
+- **Status:** accepted
+- **Context:** Complete inventories and accumulated tool output can exceed the model boundary, while
+  keeping only recent results erases useful execution history. Extra summarization calls would add
+  cost and consume the controller's model budget.
+- **Decision:** Create one context session per run. Rank paths from task and project metadata,
+  summarize older tool actions structurally, retain bounded recent evidence, focus diffs on changes,
+  and record exact serialized characters before and after selection.
+- **Consequences:** Context size is predictable without another model or provider dependency. The
+  heuristics can omit useful evidence, character counts only approximate tokens, and benchmark
+  results must guide future weight or budget changes.

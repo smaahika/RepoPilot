@@ -40,6 +40,11 @@ def test_planner_builds_deterministic_inventory_context() -> None:
     assert invocation.request.operation == "create_plan"
     assert json.loads(invocation.request.input) == {
         "task": "Update greeting",
+        "inventory_summary": {
+            "total_entries": 1,
+            "selected_entries": 1,
+            "omitted_entries": 0,
+        },
         "repository_inventory": [{"path": "src/app.py", "size_bytes": 42, "kind": "file"}],
     }
 

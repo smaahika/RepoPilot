@@ -60,7 +60,7 @@ as a small, tested commit. Scope may be reduced after the Day 7 checkpoint.
 - [x] Persist reports, diffs, JSONL events, command logs, timing, and usage.
 - [ ] Select and add an open-source license before public release.
 - [x] Add and document Docker isolation.
-- [ ] Add context ranking, compaction, and measurements.
+- [x] Add context ranking, compaction, and measurements.
 - [ ] Build 6–10 deterministic benchmark tasks and a metrics runner.
 - [ ] Produce the demo-focused README and architecture visuals.
 - [ ] Add CI, installation verification, and repository security checks.

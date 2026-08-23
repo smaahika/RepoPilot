@@ -196,6 +196,11 @@ def test_controller_completes_real_repository_vertical_slice(tmp_path: Path) -> 
     assert result.usage is not None
     assert result.usage.input_tokens == 60
     assert result.usage.output_tokens == 30
+    assert [metric.operation for metric in result.context_metrics] == [
+        "create_plan",
+        "select_tool",
+        "select_tool",
+    ]
     assert [record.event for record in result.transitions] == [
         RunEvent.WORKSPACE_READY,
         RunEvent.INVENTORY_READY,
@@ -213,6 +218,7 @@ def test_controller_completes_real_repository_vertical_slice(tmp_path: Path) -> 
     assert (artifact_path / "events.jsonl").is_file()
     assert (artifact_path / "commands" / "001-test.log").is_file()
     assert "hello world" in (source / "greeting.py").read_text(encoding="utf-8")
+    assert "## Context Selection" in (artifact_path / "report.md").read_text(encoding="utf-8")
 
     read_observation = model.invocations[2].request.input
     assert "hello world" in read_observation

@@ -57,7 +57,8 @@ run, and never applies the generated patch to the source repository. Public HTTP
 accepted with `--public-repo`. Verification is optional and limited to the command allowlist.
 
 Every allocated run preserves a report, patch, versioned transition events, and bounded verification
-logs beneath `~/.repopilot/runs/<run-id>`. Known process secrets are redacted before persistence.
+logs beneath `~/.repopilot/runs/<run-id>`. Reports include before-and-after context measurements,
+and known process secrets are redacted before persistence.
 
 ## Optional Docker verification
 
@@ -86,6 +87,7 @@ It does not turn Docker into a production security boundary; see the
 - [Implementation backlog](BACKLOG.md)
 - [MVP checkpoint](docs/mvp-checkpoint.md)
 - [Docker threat model](docs/docker-sandbox.md)
+- [Context management](docs/context-management.md)
 
 The README will become the full quick start and demo landing page after the core workflow is
 executable. Current milestones are tracked in the backlog rather than advertised as completed.
