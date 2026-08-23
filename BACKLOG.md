@@ -62,6 +62,6 @@ as a small, tested commit. Scope may be reduced after the Day 7 checkpoint.
 - [x] Add and document Docker isolation.
 - [x] Add context ranking, compaction, and measurements.
 - [x] Build 6–10 deterministic benchmark tasks and a metrics runner.
-- [ ] Produce the demo-focused README and architecture visuals.
+- [x] Produce the demo-focused README and architecture visuals.
 - [ ] Add CI, installation verification, and repository security checks.
 - [ ] Run final benchmarks, document failures, and prepare interview stories.

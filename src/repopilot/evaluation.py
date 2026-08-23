@@ -162,7 +162,7 @@ class EvaluationRunner:
         case_root = self._working_root / case.id
         source = case_root / "source"
         execution_root = case_root / "execution"
-        self._materialize(case, source)
+        materialize_benchmark_repository(case, source, self._working_root)
         model = ScriptedModel(case.scripted_responses)
         controller = RunController(
             WorkspaceManager(execution_root),
@@ -180,14 +180,6 @@ class EvaluationRunner:
         )
         return _assess(case, result)
 
-    def _materialize(self, case: BenchmarkCase, source: Path) -> None:
-        source.mkdir(parents=True)
-        for fixture in case.files:
-            path = source.joinpath(*PurePosixPath(fixture.path).parts)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(fixture.content, encoding="utf-8")
-        _initialize_git(source, self._working_root)
-
 
 def load_benchmark_suite(path: Path) -> BenchmarkSuite:
     try:
@@ -200,6 +192,20 @@ def load_benchmark_suite(path: Path) -> BenchmarkSuite:
         return BenchmarkSuite.model_validate_json(payload)
     except ValidationError as error:
         raise EvaluationError(f"Benchmark suite {str(path)!r} is invalid: {error}.") from error
+
+
+def materialize_benchmark_repository(
+    case: BenchmarkCase,
+    source: Path,
+    working_root: Path,
+) -> None:
+    """Create one trusted fixture as a standard local Git repository."""
+    source.mkdir(parents=True)
+    for fixture in case.files:
+        path = source.joinpath(*PurePosixPath(fixture.path).parts)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(fixture.content, encoding="utf-8")
+    _initialize_git(source, working_root)
 
 
 def write_evaluation_report(report: EvaluationReport, path: Path) -> None:
@@ -266,7 +272,7 @@ def _initialize_git(source: Path, working_root: Path) -> None:
 def _assess(case: BenchmarkCase, result: RunResult) -> BenchmarkResult:
     expected = case.expected
     statuses = tuple(item.status for item in result.verifications)
-    changed_files = _changed_files(result.patch)
+    changed_files = changed_files_from_patch(result.patch)
     failures: list[str] = []
     if result.termination_reason is not expected.termination_reason:
         failures.append(
@@ -307,7 +313,8 @@ def _assess(case: BenchmarkCase, result: RunResult) -> BenchmarkResult:
     )
 
 
-def _changed_files(patch: str) -> tuple[str, ...]:
+def changed_files_from_patch(patch: str) -> tuple[str, ...]:
+    """Extract unchanged-path diff headers emitted for benchmark patches."""
     prefix = "diff --git a/"
     paths: list[str] = []
     for line in patch.splitlines():

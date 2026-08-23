@@ -1,57 +1,104 @@
 # RepoPilot
 
-RepoPilot is a constrained coding agent that turns a narrowly scoped repository task into a tested,
-reviewable patch and an inspectable execution report.
+RepoPilot is a constrained coding agent that turns one narrowly scoped repository task into a
+tested, reviewable patch and an inspectable execution report.
 
-The project currently includes its design baseline, safe repository/workspace layer, validated
-tools, structured model boundary, and a deterministic controller vertical slice through planning,
-editing, verification, reflection, and bounded retries. It is intended to demonstrate bounded agent
-orchestration, safety policy, failure handling, and evaluation—not to be a general autonomous IDE or
-production security boundary.
+It is an engineering study in dependable agent orchestration: typed model outputs, explicit state
+transitions, bounded tools, disposable workspaces, verification-driven retries, optional Docker
+isolation, durable evidence, and an honest evaluation harness. It is not a general autonomous IDE or
+a production security boundary.
 
-## Development setup
+## Why RepoPilot
 
-RepoPilot requires Python 3.12 or newer.
+- **Bounded autonomy:** runtime, model calls, tool calls, and edit iterations have hard limits.
+- **Evidence before mutation:** the model inspects through typed tools and can only submit a
+  constrained Git-style patch against a disposable copy.
+- **Observable outcomes:** every run records its patch, report, state transitions, command logs,
+  usage, timing, context measurements, and termination reason.
+- **Failure-aware evaluation:** expected safety failures and genuinely successful tasks are reported
+  as different metrics.
+
+## Run the deterministic demo
+
+RepoPilot requires Python 3.12 or newer. The demo runs the real controller, repository boundary,
+tools, patch application, pytest verification, and artifact writer with a scripted model, so it needs
+no API key or network access after installation.
 
 ```bash
-python -m venv .venv
+git clone https://github.com/smaahika/RepoPilot.git
+cd RepoPilot
+python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --editable '.[dev]'
-pytest
-mypy
-ruff check .
+python scripts/demo.py
 ```
 
-The complete local checkpoint—including formatting, lint, strict typing, tests, wheel creation,
-clean-environment installation, and an installed CLI smoke test—runs with:
+Expected excerpt:
+
+```text
+RepoPilot deterministic demo
+Task: Change greeting() to return hello RepoPilot.
+Result: success
+Changed files: greeting.py
+Verification: passed
+Iterations: 1; model calls: 3; tool calls: 4
+Artifacts: commands/001-test.log, events.jsonl, patch.diff, report.md
+```
+
+The demo prints the generated unified diff and is verified by an integration test. The complete
+transcript and a 60–90 second walkthrough are in the [demo guide](docs/demo.md).
+
+To retain the generated fixture and run artifacts at a new path for inspection:
 
 ```bash
-python scripts/check.py
+python scripts/demo.py --output-dir /tmp/repopilot-demo
 ```
 
-The deterministic controller demo is covered by:
+## Architecture
 
-```bash
-pytest -q tests/integration/test_controller.py -k reflects_and_fixes
+```mermaid
+flowchart LR
+    U[Scoped task] --> CLI[CLI and configuration]
+    CLI --> APP[Application service]
+    APP --> C[Run controller]
+
+    C --> CTX[Context selection]
+    C --> P[Planner]
+    C --> E[Editor]
+    C --> R[Reflector]
+    P --> M[Structured model adapter]
+    E --> M
+    R --> M
+
+    C --> T[Validated tool executor]
+    T --> W[Disposable repository copy]
+    T --> V[Verification]
+    V --> L[Local backend]
+    V --> D[Optional Docker backend]
+
+    C --> RR[Terminal run result]
+    RR --> A[Report, patch, events, command logs]
 ```
 
-The eight-case offline agent benchmark runs with:
+The controller—not the model—owns state transitions, budgets, tool dispatch, retries, and
+termination. Provider adapters only transport structured requests and normalize responses.
 
-```bash
-python scripts/evaluate.py
-```
+| Boundary | Responsibility |
+| --- | --- |
+| Model | Return a validated plan, one tool call, or one reflection |
+| Controller | Decide what may happen next and account for every operation |
+| Tools | Enforce path, patch, command, timeout, and output policies |
+| Workspace | Keep all edits away from the source repository |
+| Verification | Convert diffs and command exits into stable outcomes |
+| Artifact writer | Persist bounded, redacted terminal evidence atomically |
 
-Its checked-in baseline distinguishes 8/8 expected behaviors from 6/8 genuinely successful tasks;
-see the [evaluation methodology](docs/evaluation.md) for why those numbers are intentionally separate.
+See the full [architecture](docs/architecture.md) and
+[design decision log](docs/design-decisions.md).
 
-The CLI surface can be inspected with:
+## Run against a repository
 
-```bash
-python -m repopilot --help
-```
-
-To execute the controller against a local repository, export an API key and provide a narrowly
-scoped task. The optional verification command is passed as an argument vector and must appear last:
+Export an API key and provide exactly one local path or credential-free public HTTPS repository. The
+optional verification command is an argument vector and must appear last.
 
 ```bash
 export OPENAI_API_KEY="your-key"
@@ -61,18 +108,23 @@ repopilot run \
   --verify pytest -q
 ```
 
-RepoPilot copies the source into `~/.repopilot/workspaces`, removes that disposable copy after the
-run, and never applies the generated patch to the source repository. Public HTTPS repositories are
-accepted with `--public-repo`. Verification is optional and limited to the command allowlist.
+RepoPilot copies the source into `~/.repopilot/workspaces`, operates only on that copy, removes the
+workspace after termination, and leaves the source unchanged. Durable evidence remains under
+`~/.repopilot/runs/<run-id>`:
 
-Every allocated run preserves a report, patch, versioned transition events, and bounded verification
-logs beneath `~/.repopilot/runs/<run-id>`. Reports include before-and-after context measurements,
-and known process secrets are redacted before persistence.
+```text
+runs/<run-id>/
+├── report.md
+├── patch.diff
+├── events.jsonl
+└── commands/
+    └── 001-test.log
+```
 
 ## Optional Docker verification
 
-Local execution remains the default. To run allowlisted verification commands in the reference
-Python sandbox, build its image and select the Docker backend:
+Local command execution is the default. To run allowlisted verification commands in the reference
+Python sandbox:
 
 ```bash
 docker build --tag repopilot-sandbox:py312 docker
@@ -83,21 +135,79 @@ repopilot run \
   --verify pytest -q
 ```
 
-The container receives no network, a read-only repository mount, a writable temporary filesystem,
-dropped Linux capabilities, no-new-privileges, and CPU, memory, PID, output, and runtime limits.
-It does not turn Docker into a production security boundary; see the
-[Docker threat model](docs/docker-sandbox.md) for guarantees and limitations.
+The container has no network, a read-only repository mount, a writable temporary filesystem,
+dropped capabilities, no-new-privileges, and CPU, memory, PID, output, and runtime limits. Docker
+still shares the host kernel; read the [threat model](docs/docker-sandbox.md) before treating it as
+an isolation control.
 
-## Project documents
+## Evaluation baseline
+
+Run all eight offline cases with:
+
+```bash
+python scripts/evaluate.py
+```
+
+| Metric | Scripted replay v1 |
+| --- | ---: |
+| Expected behaviors matched | 8/8 |
+| Tasks that actually succeeded | 6/8 (75%) |
+| Model calls | 24 |
+| Tool calls | 31 |
+| Edit iterations | 8 |
+| Context characters | 9,984 before → 12,462 after |
+
+The two unsuccessful tasks intentionally exercise invalid-patch rejection and retry-budget
+exhaustion. They match their expected behavior but remain failed tasks. The small fixtures also show
+that context metadata can cost more than it saves; large-input stress tests show the opposite. See
+the [evaluation methodology](docs/evaluation.md) and
+[checked baseline](evaluation/results/baseline.json).
+
+Scripted replay measures orchestration regressions, not real-model coding ability. No provider token
+usage is invented when a scripted model reports none.
+
+## Engineering tradeoffs
+
+| Decision | Benefit | Cost |
+| --- | --- | --- |
+| One model-selected tool per turn | Deterministic ordering and accounting | More model round trips |
+| Disposable repository copies | Source isolation and clean diffs | Additional disk and copy time |
+| Pydantic at external boundaries | Runtime rejection of malformed data | Schema and serialization overhead |
+| Heuristic context selection | Fast, reproducible, provider-neutral | Can omit useful evidence or add small-input overhead |
+| Local execution by default | Works without Docker | Not a security sandbox |
+| Scripted offline benchmark | Stable, cheap regression signal | Not a model-capability score |
+
+## Current limitations
+
+- Only standard Git working trees and credential-free public HTTPS clones are supported.
+- Command execution is restricted to a small verification allowlist.
+- The reference Docker image targets Python projects and is not a hardened multi-tenant sandbox.
+- Context ranking uses filenames and task terms rather than semantic embeddings.
+- The baseline is deterministic scripted replay; repeated live-model trials are future work.
+- RepoPilot produces a patch for review and never applies it back to the source repository.
+- The project is pre-release (`0.1.0.dev0`) and does not yet include its final CI/security workflow
+  or open-source license.
+
+## Development checkpoint
+
+Install development dependencies and run the complete local release check:
+
+```bash
+python -m pip install --editable '.[dev]'
+python scripts/check.py
+```
+
+The checkpoint verifies formatting, lint, strict typing, unit and integration tests, wheel creation,
+installation into a clean virtual environment, and the installed CLI entry point.
+
+## Documentation
 
 - [Product and system design](docs/design.md)
-- [Architecture](docs/architecture.md)
-- [Design decision log](docs/design-decisions.md)
-- [Implementation backlog](BACKLOG.md)
-- [MVP checkpoint](docs/mvp-checkpoint.md)
+- [Architecture and trust boundaries](docs/architecture.md)
+- [Design decisions](docs/design-decisions.md)
+- [Deterministic demo guide](docs/demo.md)
 - [Docker threat model](docs/docker-sandbox.md)
 - [Context management](docs/context-management.md)
-- [Evaluation methodology and baseline](docs/evaluation.md)
-
-The README will become the full quick start and demo landing page after the core workflow is
-executable. Current milestones are tracked in the backlog rather than advertised as completed.
+- [Evaluation methodology](docs/evaluation.md)
+- [MVP checkpoint](docs/mvp-checkpoint.md)
+- [Implementation backlog](BACKLOG.md)
