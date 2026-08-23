@@ -98,6 +98,7 @@ src/repopilot/
 ├── composition.py         # Production adapter wiring
 ├── application.py         # Execution and artifact application services
 ├── artifacts.py           # Bounded atomic run persistence
+├── sandbox.py             # Optional Docker command backend
 ├── models.py              # Pydantic boundary/domain schemas
 ├── model_models.py        # Structured model requests, plans, calls, and usage
 ├── model_client.py        # Provider-neutral structured generation protocol
@@ -262,9 +263,14 @@ They use a validated repository-relative working directory, a stripped environme
 streaming output caps, monotonic deadlines, and POSIX process-group termination. A nonzero exit is
 command data rather than a tool error; the verifier will interpret whether that means tests failed.
 
-The local command runner is a capability boundary, not a security sandbox. Test execution runs
-repository code and cannot reliably block filesystem or network access. Docker isolation remains a
-separate post-MVP control.
+The local command runner is a capability boundary, not a security sandbox. The optional Docker
+backend retains command policy while adding a read-only mount, network denial, dropped capabilities,
+no-new-privileges, tmpfs, and CPU, memory, PID, output, and runtime limits. It uses the same backend
+interface as local execution, so controller behavior does not branch on isolation details.
+
+Docker still shares the host kernel and trusts the Docker daemon and selected image. Resource
+enforcement varies by platform, and read-only mounts are incompatible with suites that require
+in-tree build output. The complete threat boundary is documented in `docs/docker-sandbox.md`.
 
 ## Run artifacts
 
@@ -287,7 +293,7 @@ on both successful and failed paths.
 ## Known Day 1 uncertainties
 
 - Supported project types and command-detection rules will be narrowed during verification work.
-- Docker availability and cross-platform behavior need a spike before becoming a requirement.
+- Live Docker behavior and cross-platform enforcement require validation on a Docker-enabled host.
 - Patch application may use a Git subprocess or a Python implementation; Day 2 tests should drive
   that choice.
 - Context ranking and model prompt shape require benchmark evidence and remain deferred.

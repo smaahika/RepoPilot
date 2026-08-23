@@ -59,6 +59,25 @@ accepted with `--public-repo`. Verification is optional and limited to the comma
 Every allocated run preserves a report, patch, versioned transition events, and bounded verification
 logs beneath `~/.repopilot/runs/<run-id>`. Known process secrets are redacted before persistence.
 
+## Optional Docker verification
+
+Local execution remains the default. To run allowlisted verification commands in the reference
+Python sandbox, build its image and select the Docker backend:
+
+```bash
+docker build --tag repopilot-sandbox:py312 docker
+repopilot run \
+  --execution-backend docker \
+  --local-repo /path/to/repository \
+  --task "Add a CLI flag and document it." \
+  --verify pytest -q
+```
+
+The container receives no network, a read-only repository mount, a writable temporary filesystem,
+dropped Linux capabilities, no-new-privileges, and CPU, memory, PID, output, and runtime limits.
+It does not turn Docker into a production security boundary; see the
+[Docker threat model](docs/docker-sandbox.md) for guarantees and limitations.
+
 ## Project documents
 
 - [Product and system design](docs/design.md)
@@ -66,6 +85,7 @@ logs beneath `~/.repopilot/runs/<run-id>`. Known process secrets are redacted be
 - [Design decision log](docs/design-decisions.md)
 - [Implementation backlog](BACKLOG.md)
 - [MVP checkpoint](docs/mvp-checkpoint.md)
+- [Docker threat model](docs/docker-sandbox.md)
 
 The README will become the full quick start and demo landing page after the core workflow is
 executable. Current milestones are tracked in the backlog rather than advertised as completed.

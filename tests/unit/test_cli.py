@@ -94,6 +94,10 @@ def test_run_builds_validated_local_request_and_prints_patch(tmp_path: Path) -> 
             str(run_root),
             "--model",
             "gpt-test",
+            "--execution-backend",
+            "docker",
+            "--docker-image",
+            "sandbox:test",
             "--max-iterations",
             "2",
             "--verify",
@@ -116,6 +120,8 @@ def test_run_builds_validated_local_request_and_prints_patch(tmp_path: Path) -> 
     assert factory.config is not None
     assert factory.config.run_root == run_root.resolve()
     assert factory.config.model.model == "gpt-test"
+    assert factory.config.execution_backend == "docker"
+    assert factory.config.docker.image == "sandbox:test"
     assert factory.config.api_key.get_secret_value() == "secret-key"
     assert "secret-key" not in repr(factory.config)
     assert "Run cli-test: success" in output.getvalue()

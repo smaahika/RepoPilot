@@ -164,6 +164,10 @@ class ProcessError(RepoPilotError):
     """Base class for bounded subprocess failures."""
 
 
+class SandboxExecutionError(ProcessError):
+    """Raised when an isolated command environment cannot execute."""
+
+
 class ProcessSpawnError(ProcessError):
     """Raised when a subprocess cannot be started."""
 

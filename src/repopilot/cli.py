@@ -42,6 +42,8 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--run-id")
     run_parser.add_argument("--run-root", type=Path)
     run_parser.add_argument("--model")
+    run_parser.add_argument("--execution-backend", choices=("local", "docker"))
+    run_parser.add_argument("--docker-image")
     run_parser.add_argument("--max-runtime-seconds", type=float, default=600)
     run_parser.add_argument("--max-model-calls", type=int, default=8)
     run_parser.add_argument("--max-tool-calls", type=int, default=20)
@@ -84,6 +86,8 @@ def main(
             environ,
             run_root=arguments.run_root,
             model=arguments.model,
+            execution_backend=arguments.execution_backend,
+            docker_image=arguments.docker_image,
         )
         request = _run_request(arguments)
     except (ConfigurationError, ValidationError) as error:

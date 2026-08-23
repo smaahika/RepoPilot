@@ -29,7 +29,7 @@ from repopilot.tool_models import (
 from repopilot.tools.filesystem import FilesystemTools
 from repopilot.tools.git import GitTools
 from repopilot.tools.patch import PatchTool
-from repopilot.tools.shell import CommandPolicy, CommandTool
+from repopilot.tools.shell import CommandBackend, CommandPolicy, CommandTool
 
 type AnyToolResult = (
     ToolResult[ListFilesData]
@@ -49,10 +49,11 @@ class ToolExecutor:
         checkout: RepositoryCheckout,
         repository: RepositoryService,
         command_policy: CommandPolicy | None = None,
+        command_backend: CommandBackend | None = None,
     ) -> None:
         self._filesystem = FilesystemTools(checkout, repository)
         self._patch = PatchTool(checkout)
-        self._command = CommandTool(checkout, command_policy)
+        self._command = CommandTool(checkout, command_policy, backend=command_backend)
         self._git = GitTools(checkout, repository)
 
     def execute(self, call: ModelToolCall) -> AnyToolResult:

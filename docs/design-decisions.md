@@ -197,3 +197,13 @@ or **superseded**.
   the exact artifact directory allocated by the workspace manager.
 - **Consequences:** Success and failure use one persistence path, files are atomic and no-overwrite,
   and persistence errors fail the outer application explicitly without changing the run outcome.
+
+## ADR-020: Make Docker execution explicit and backend-neutral
+
+- **Status:** accepted
+- **Context:** Repository tests execute untrusted code, but Docker is not universally available and
+  is not a complete security boundary. The controller should not depend on container mechanics.
+- **Decision:** Keep local execution as the default and inject an opt-in Docker command backend that
+  retains application policy while applying fixed isolation and resource flags.
+- **Consequences:** The controller and normalized results remain unchanged. Docker users must build
+  or select a trusted dependency image, and live platform behavior requires separate verification.

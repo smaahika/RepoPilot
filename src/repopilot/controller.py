@@ -42,7 +42,7 @@ from repopilot.run_models import (
 from repopilot.state_machine import RunEvent, RunPhase, RunStateMachine
 from repopilot.tool_executor import AnyToolResult, ToolExecutor
 from repopilot.tool_models import GitDiffRequest
-from repopilot.tools.shell import CommandPolicy
+from repopilot.tools.shell import CommandBackend, CommandPolicy
 from repopilot.verification import VerificationResult, normalize_command, verify_diff
 from repopilot.workspace import WorkspaceManager
 
@@ -60,6 +60,7 @@ class RunController:
         *,
         logger: RunLogger | None = None,
         command_policy: CommandPolicy | None = None,
+        command_backend: CommandBackend | None = None,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._workspaces = workspaces
@@ -69,6 +70,7 @@ class RunController:
         self._reflector = Reflector(model)
         self._logger = logger or NullRunLogger()
         self._command_policy = command_policy
+        self._command_backend = command_backend
         self._clock = clock
 
     def run(self, request: RunRequest) -> RunResult:
@@ -107,7 +109,12 @@ class RunController:
             tracker.check_runtime()
             self._advance(machine, RunEvent.PLAN_READY, run_id, tracker, recorder)
 
-            executor = ToolExecutor(checkout, self._repository, self._command_policy)
+            executor = ToolExecutor(
+                checkout,
+                self._repository,
+                self._command_policy,
+                self._command_backend,
+            )
             while True:
                 while machine.phase is RunPhase.EDIT:
                     tracker.consume_model_call()

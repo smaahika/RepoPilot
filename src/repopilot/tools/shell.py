@@ -6,6 +6,7 @@ import os
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 from repopilot.errors import (
     PathNotFoundError,
@@ -13,10 +14,11 @@ from repopilot.errors import (
     ProcessOutputLimitError,
     ProcessSpawnError,
     ProcessTimeoutError,
+    SandboxExecutionError,
 )
 from repopilot.models import RepositoryCheckout
 from repopilot.path_policy import resolve_workspace_path
-from repopilot.process import BoundedProcessRunner, safe_search_path
+from repopilot.process import BoundedProcessRunner, ProcessResult, safe_search_path
 from repopilot.tool_models import (
     RunCommandData,
     RunCommandRequest,
@@ -58,19 +60,15 @@ class CommandPolicy:
             CommandRule(("npm", "run", "lint")),
         )
 
-    def authorize(self, argv: tuple[str, ...], *, search_path: str) -> tuple[str, ...]:
-        """Return argv with a resolved executable or raise a policy failure."""
+    def validate(self, argv: tuple[str, ...]) -> tuple[str, ...]:
+        """Validate an argv against command and path policy without resolving it."""
         if Path(argv[0]).name != argv[0]:
             raise _CommandPolicyError("Command executables cannot contain path components.")
         if not any(argv[: len(rule.prefix)] == rule.prefix for rule in self._rules):
             raise _CommandPolicyError("Command prefix is not allowlisted.")
         for argument in argv[1:]:
             self._validate_argument(argument)
-
-        executable = shutil.which(argv[0], path=search_path)
-        if executable is None:
-            raise _CommandPolicyError(f"Allowlisted executable {argv[0]!r} is not installed.")
-        return (str(Path(executable).resolve(strict=True)), *argv[1:])
+        return argv
 
     @staticmethod
     def _validate_argument(argument: str) -> None:
@@ -87,6 +85,60 @@ class CommandPolicy:
                 )
 
 
+class CommandBackend(Protocol):
+    def run(
+        self,
+        checkout: RepositoryCheckout,
+        cwd: Path,
+        argv: tuple[str, ...],
+        timeout_seconds: float,
+    ) -> ProcessResult: ...
+
+
+class LocalCommandBackend:
+    """Run verification directly on the host with a stripped environment."""
+
+    def __init__(self, runner: BoundedProcessRunner) -> None:
+        self._runner = runner
+
+    def run(
+        self,
+        checkout: RepositoryCheckout,
+        cwd: Path,
+        argv: tuple[str, ...],
+        timeout_seconds: float,
+    ) -> ProcessResult:
+        environment = self._environment(checkout)
+        executable = shutil.which(argv[0], path=environment["PATH"])
+        if executable is None:
+            raise _CommandPolicyError(f"Allowlisted executable {argv[0]!r} is not installed.")
+        return self._runner.run(
+            "run command",
+            (str(Path(executable).resolve(strict=True)), *argv[1:]),
+            cwd=cwd,
+            environment=environment,
+            timeout_seconds=timeout_seconds,
+        )
+
+    @staticmethod
+    def _environment(checkout: RepositoryCheckout) -> dict[str, str]:
+        temporary = checkout.workspace.root_path / "command-tmp"
+        cache = checkout.workspace.root_path / "command-cache"
+        temporary.mkdir(exist_ok=True, mode=0o700)
+        cache.mkdir(exist_ok=True, mode=0o700)
+        return {
+            "LANG": os.environ.get("LANG", "C.UTF-8"),
+            "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8"),
+            "PATH": safe_search_path(
+                os.environ.get("PATH", os.defpath),
+                forbidden_root=checkout.path,
+            ),
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "TMPDIR": str(temporary),
+            "XDG_CACHE_HOME": str(cache),
+        }
+
+
 class CommandTool:
     """Execute approved verification commands with bounded resources."""
 
@@ -95,15 +147,17 @@ class CommandTool:
         checkout: RepositoryCheckout,
         policy: CommandPolicy | None = None,
         *,
+        backend: CommandBackend | None = None,
         output_limit_bytes: int = 1_048_576,
         timeout_limit_seconds: float = 120,
     ) -> None:
         self._checkout = checkout
         self._policy = policy or CommandPolicy()
-        self._runner = BoundedProcessRunner(
+        runner = BoundedProcessRunner(
             timeout_seconds=timeout_limit_seconds,
             output_limit_bytes=output_limit_bytes,
         )
+        self._backend = backend or LocalCommandBackend(runner)
 
     def run(self, request: RunCommandRequest) -> ToolResult[RunCommandData]:
         """Run an allowlisted command and preserve nonzero exits as data."""
@@ -112,14 +166,12 @@ class CommandTool:
             cwd = resolve_workspace_path(self._checkout.path, request.cwd)
             if not cwd.is_dir():
                 raise PathPolicyError(request.cwd, "command cwd is not a directory")
-            environment = self._environment()
-            argv = self._policy.authorize(request.argv, search_path=environment["PATH"])
-            result = self._runner.run(
-                "run command",
+            argv = self._policy.validate(request.argv)
+            result = self._backend.run(
+                self._checkout,
+                cwd,
                 argv,
-                cwd=cwd,
-                environment=environment,
-                timeout_seconds=request.timeout_seconds,
+                request.timeout_seconds,
             )
             relative_cwd = cwd.relative_to(self._checkout.path.resolve(strict=True)).as_posix()
             return succeeded(
@@ -143,25 +195,10 @@ class CommandTool:
             return failed(ToolName.RUN_COMMAND, started, ToolErrorCode.TIMEOUT, str(exc))
         except ProcessOutputLimitError as exc:
             return failed(ToolName.RUN_COMMAND, started, ToolErrorCode.LIMIT_EXCEEDED, str(exc))
+        except SandboxExecutionError as exc:
+            return failed(ToolName.RUN_COMMAND, started, ToolErrorCode.EXECUTION_ERROR, str(exc))
         except (ProcessSpawnError, OSError) as exc:
             return failed(ToolName.RUN_COMMAND, started, ToolErrorCode.EXECUTION_ERROR, str(exc))
-
-    def _environment(self) -> dict[str, str]:
-        temporary = self._checkout.workspace.root_path / "command-tmp"
-        cache = self._checkout.workspace.root_path / "command-cache"
-        temporary.mkdir(exist_ok=True)
-        cache.mkdir(exist_ok=True)
-        return {
-            "LANG": os.environ.get("LANG", "C.UTF-8"),
-            "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8"),
-            "PATH": safe_search_path(
-                os.environ.get("PATH", os.defpath),
-                forbidden_root=self._checkout.path,
-            ),
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "TMPDIR": str(temporary),
-            "XDG_CACHE_HOME": str(cache),
-        }
 
 
 class _CommandPolicyError(ValueError):

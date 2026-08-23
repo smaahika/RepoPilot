@@ -8,7 +8,7 @@ import pytest
 from pydantic import SecretStr
 
 from repopilot.application import PersistingRunApplication
-from repopilot.config import RuntimeConfig
+from repopilot.config import ExecutionBackend, RuntimeConfig
 from repopilot.controller import RunController
 from repopilot.openai_model import OpenAIModelConfig
 
@@ -32,6 +32,7 @@ def test_builds_controller_with_explicit_provider_secret(
         api_key=SecretStr("provider-secret"),
         run_root=tmp_path,
         model=OpenAIModelConfig(model="gpt-test"),
+        execution_backend=ExecutionBackend.DOCKER,
     )
 
     from repopilot.composition import build_application, build_controller

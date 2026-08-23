@@ -41,5 +41,4 @@ The next release-critical work is:
 
 1. Run the checkpoint through CI and tag only the commit that passes it.
 
-Docker isolation, ranking, benchmarks, and presentation work remain important but do not replace
-those missing product surfaces.
+Context ranking, benchmarks, licensing, CI, and presentation work remain before final release polish.

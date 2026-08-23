@@ -4,12 +4,19 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from enum import StrEnum
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, SecretStr, ValidationError
 
 from repopilot.errors import ConfigurationError
 from repopilot.openai_model import OpenAIModelConfig
+from repopilot.sandbox import DockerSandboxConfig
+
+
+class ExecutionBackend(StrEnum):
+    LOCAL = "local"
+    DOCKER = "docker"
 
 
 class RuntimeConfig(BaseModel):
@@ -18,6 +25,8 @@ class RuntimeConfig(BaseModel):
     api_key: SecretStr
     run_root: Path
     model: OpenAIModelConfig
+    execution_backend: ExecutionBackend = ExecutionBackend.LOCAL
+    docker: DockerSandboxConfig = DockerSandboxConfig()
 
 
 def load_runtime_config(
@@ -25,6 +34,8 @@ def load_runtime_config(
     *,
     run_root: Path | None = None,
     model: str | None = None,
+    execution_backend: str | None = None,
+    docker_image: str | None = None,
 ) -> RuntimeConfig:
     """Load secrets and bounded runtime settings without mutating the environment."""
     values = os.environ if environ is None else environ
@@ -44,11 +55,33 @@ def load_runtime_config(
     if selected_model is not None:
         model_values["model"] = selected_model
 
+    docker_values: dict[str, object] = {}
+    _copy_setting(values, docker_values, "REPOPILOT_DOCKER_CPUS", "cpus")
+    _copy_setting(values, docker_values, "REPOPILOT_DOCKER_MEMORY_MB", "memory_mb")
+    _copy_setting(values, docker_values, "REPOPILOT_DOCKER_PIDS_LIMIT", "pids_limit")
+    _copy_setting(values, docker_values, "REPOPILOT_DOCKER_TMPFS_MB", "tmpfs_mb")
+    selected_image = (
+        docker_image
+        if docker_image is not None
+        else _environment_text(values, "REPOPILOT_DOCKER_IMAGE")
+    )
+    if selected_image is not None:
+        docker_values["image"] = selected_image
+    selected_backend = (
+        execution_backend
+        if execution_backend is not None
+        else _environment_text(values, "REPOPILOT_EXECUTION_BACKEND")
+    )
+
     try:
-        return RuntimeConfig(
-            api_key=SecretStr(api_key),
-            run_root=selected_root.expanduser().resolve(),
-            model=OpenAIModelConfig.model_validate(model_values),
+        return RuntimeConfig.model_validate(
+            {
+                "api_key": SecretStr(api_key),
+                "run_root": selected_root.expanduser().resolve(),
+                "model": OpenAIModelConfig.model_validate(model_values),
+                "execution_backend": selected_backend or ExecutionBackend.LOCAL,
+                "docker": DockerSandboxConfig.model_validate(docker_values),
+            }
         )
     except (OSError, RuntimeError, ValidationError) as error:
         raise ConfigurationError(_configuration_message(error)) from error
