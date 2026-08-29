@@ -185,8 +185,7 @@ usage is invented when a scripted model reports none.
 - Context ranking uses filenames and task terms rather than semantic embeddings.
 - The baseline is deterministic scripted replay; repeated live-model trials are future work.
 - RepoPilot produces a patch for review and never applies it back to the source repository.
-- The project is pre-release (`0.1.0.dev0`) and does not yet include its final CI/security workflow
-  or open-source license.
+- The project is pre-release (`0.1.0.dev0`) and does not yet include an open-source license.
 
 ## Development checkpoint
 
@@ -198,7 +197,11 @@ python scripts/check.py
 ```
 
 The checkpoint verifies formatting, lint, strict typing, unit and integration tests, wheel creation,
-installation into a clean virtual environment, and the installed CLI entry point.
+repository security hygiene, installation into a clean virtual environment, and the installed CLI
+entry point. GitHub workflows are configured to run the checkpoint, test the current Python release,
+review dependency changes, and perform CodeQL analysis independently.
+
+Run only the fast repository-hygiene gate with `python scripts/security_check.py`.
 
 ## Documentation
 
@@ -209,5 +212,8 @@ installation into a clean virtual environment, and the installed CLI entry point
 - [Docker threat model](docs/docker-sandbox.md)
 - [Context management](docs/context-management.md)
 - [Evaluation methodology](docs/evaluation.md)
+- [Repository hardening](docs/repository-hardening.md)
 - [MVP checkpoint](docs/mvp-checkpoint.md)
+- [Security policy](SECURITY.md)
+- [Contributing guide](CONTRIBUTING.md)
 - [Implementation backlog](BACKLOG.md)

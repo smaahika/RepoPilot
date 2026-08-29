@@ -24,10 +24,11 @@ The command performs, in order:
 1. Ruff formatting verification.
 2. Ruff linting.
 3. strict mypy analysis.
-4. unit and integration tests.
-5. a dependency-free wheel build.
-6. installation into a temporary clean virtual environment.
-7. an installed `repopilot --version` smoke test.
+4. repository security and generated-artifact checks.
+5. unit and integration tests.
+6. a dependency-free wheel build.
+7. installation into a temporary clean virtual environment.
+8. an installed `repopilot --version` smoke test.
 
 The retry vertical slice can be run independently with:
 
@@ -41,5 +42,6 @@ The next release-critical work is:
 
 1. Run the checkpoint through CI and tag only the commit that passes it.
 
-Licensing, CI, and presentation work remain before final release polish. The deterministic replay
-benchmark is implemented; real-model quality and context-policy tuning remain evaluation questions.
+Licensing and final evaluation work remain before release polish. The deterministic replay benchmark
+is implemented; real-model quality and context-policy tuning remain evaluation questions. CI and
+security workflows are configured but remain unverified until their first pushed run completes.

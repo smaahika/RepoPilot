@@ -37,6 +37,6 @@ def test_readme_metrics_match_the_checked_baseline() -> None:
 def test_readme_commands_reference_existing_scripts() -> None:
     readme = (_ROOT / "README.md").read_text(encoding="utf-8")
 
-    for name in ("check.py", "demo.py", "evaluate.py"):
+    for name in ("check.py", "demo.py", "evaluate.py", "security_check.py"):
         assert f"scripts/{name}" in readme
         assert (_ROOT / "scripts" / name).is_file()

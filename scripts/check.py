@@ -14,6 +14,7 @@ _QUALITY_COMMANDS = (
     (sys.executable, "-m", "ruff", "format", "--check", "."),
     (sys.executable, "-m", "ruff", "check", "."),
     (sys.executable, "-m", "mypy"),
+    (sys.executable, "scripts/security_check.py"),
     (sys.executable, "-m", "pytest", "-q"),
 )
 

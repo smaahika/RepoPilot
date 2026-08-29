@@ -233,3 +233,15 @@ or **superseded**.
 - **Consequences:** The suite is reproducible, offline, and exercises failure behavior without hiding
   it. Its 75% task-success rate is not a model score; live evaluation requires repeated trials,
   provider metadata, usage, cost, and variance.
+
+## ADR-023: Layer local and hosted repository checks
+
+- **Status:** accepted
+- **Context:** Hosted checks run only after code leaves a developer machine, while local checks alone
+  cannot provide dependency intelligence or semantic vulnerability analysis.
+- **Decision:** Put formatting, typing, tests, packaging, and a deterministic repository-hygiene scan
+  in one local checkpoint. Run that checkpoint in least-privilege CI and add isolated CodeQL and
+  dependency-review workflows with explicit time limits.
+- **Consequences:** Contributors get one reproducible command and GitHub supplies independent security
+  signals. High-confidence local patterns can still miss novel secrets, and hosted checks remain
+  unverified until their first pushed run completes.
