@@ -64,4 +64,14 @@ as a small, tested commit. Scope may be reduced after the Day 7 checkpoint.
 - [x] Build 6–10 deterministic benchmark tasks and a metrics runner.
 - [x] Produce the demo-focused README and architecture visuals.
 - [x] Add CI, installation verification, and repository security checks.
-- [ ] Run final benchmarks, document failures, and prepare interview stories.
+- [x] Run final benchmarks, document failures, and prepare interview stories.
+
+## Release gates
+
+- [x] Verify the deterministic demo, benchmark, local checkpoint, CI, and CodeQL.
+- [x] Document release evidence, remaining risks, interview stories, and resume bullets.
+- [ ] Select and add an open-source license.
+- [ ] Enable Dependabot security updates and protect `main` with required checks.
+- [ ] Validate dependency review on a pull request.
+- [ ] Record and add a short demo video or GIF.
+- [ ] Promote the package to `0.1.0`, verify the exact commit, and publish the `v0.1.0` release.

@@ -1,5 +1,8 @@
 # RepoPilot
 
+[![CI](https://github.com/smaahika/RepoPilot/actions/workflows/ci.yml/badge.svg)](https://github.com/smaahika/RepoPilot/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/smaahika/RepoPilot/actions/workflows/codeql.yml/badge.svg)](https://github.com/smaahika/RepoPilot/actions/workflows/codeql.yml)
+
 RepoPilot is a constrained coding agent that turns one narrowly scoped repository task into a
 tested, reviewable patch and an inspectable execution report.
 
@@ -212,8 +215,11 @@ Run only the fast repository-hygiene gate with `python scripts/security_check.py
 - [Docker threat model](docs/docker-sandbox.md)
 - [Context management](docs/context-management.md)
 - [Evaluation methodology](docs/evaluation.md)
+- [Interview guide](docs/interview-guide.md)
 - [Repository hardening](docs/repository-hardening.md)
+- [Release readiness](docs/release-readiness.md)
 - [MVP checkpoint](docs/mvp-checkpoint.md)
+- [Changelog](CHANGELOG.md)
 - [Security policy](SECURITY.md)
 - [Contributing guide](CONTRIBUTING.md)
 - [Implementation backlog](BACKLOG.md)

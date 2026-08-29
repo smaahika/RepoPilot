@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "repopilot"
-version = "0.1.0.dev0"
+dynamic = ["version"]
 description = "A constrained coding agent that produces tested, reviewable patches."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -28,6 +28,9 @@ repopilot = "repopilot.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.dynamic]
+version = { attr = "repopilot.__version__" }
 
 [tool.pytest.ini_options]
 addopts = "--strict-config --strict-markers"

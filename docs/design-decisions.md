@@ -245,3 +245,14 @@ or **superseded**.
 - **Consequences:** Contributors get one reproducible command and GitHub supplies independent security
   signals. High-confidence local patterns can still miss novel secrets, and hosted checks remain
   unverified until their first pushed run completes.
+
+## ADR-024: Release the first stable checkpoint as v0.1.0
+
+- **Status:** accepted
+- **Context:** The original project sketch proposed `v1.0`, but provider behavior, real-model quality,
+  and the public interface have not yet earned a stability promise. The version was also duplicated
+  between package metadata and runtime code.
+- **Decision:** Use `v0.1.0` for the first reviewed release and make `repopilot.__version__` the single
+  version source consumed by setuptools and the CLI.
+- **Consequences:** The release communicates a complete but evolving MVP, and metadata cannot drift
+  from `repopilot --version`. A clean-install check guards the build-backend configuration.

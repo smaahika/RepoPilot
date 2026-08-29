@@ -29,6 +29,7 @@ The command performs, in order:
 6. a dependency-free wheel build.
 7. installation into a temporary clean virtual environment.
 8. an installed `repopilot --version` smoke test.
+9. consistency between installed package metadata and the runtime version.
 
 The retry vertical slice can be run independently with:
 

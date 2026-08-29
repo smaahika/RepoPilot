@@ -57,6 +57,13 @@ def main() -> int:
             return 1
         if _run((str(python), "-m", "repopilot", "--version")) != 0:
             return 1
+        metadata_check = (
+            "from importlib.metadata import version; "
+            "import repopilot; "
+            "assert version('repopilot') == repopilot.__version__"
+        )
+        if _run((str(python), "-c", metadata_check)) != 0:
+            return 1
 
     return 0
 
