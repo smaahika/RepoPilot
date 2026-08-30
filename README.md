@@ -221,8 +221,6 @@ Run only the fast repository-hygiene gate with `python scripts/security_check.py
 - [Release readiness](docs/release-readiness.md)
 - [MVP checkpoint](docs/mvp-checkpoint.md)
 - [Changelog](CHANGELOG.md)
-- [Security policy](SECURITY.md)
-- [Contributing guide](CONTRIBUTING.md)
 - [Implementation backlog](BACKLOG.md)
 
 ## License

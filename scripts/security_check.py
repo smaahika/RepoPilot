@@ -110,7 +110,8 @@ def _repository_paths(root: Path) -> tuple[str, ...]:
         raise RuntimeError(f"cannot enumerate repository files: {detail}")
 
     decoded = (os.fsdecode(item) for item in completed.stdout.split(b"\0") if item)
-    return tuple(sorted(decoded))
+    present = (path for path in decoded if (root / path).exists() or (root / path).is_symlink())
+    return tuple(sorted(present))
 
 
 def _path_issue(path: str) -> SecurityIssue | None:

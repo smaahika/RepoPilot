@@ -49,6 +49,18 @@ def test_security_check_rejects_oversized_files(tmp_path: Path) -> None:
     assert "large.txt: file exceeds 1048576 byte limit" in completed.stderr
 
 
+def test_security_check_allows_tracked_file_deletion(tmp_path: Path) -> None:
+    repository = _git_repository(tmp_path)
+    removed = repository / "removed.txt"
+    removed.write_text("temporary\n", encoding="utf-8")
+    subprocess.run(("git", "-C", str(repository), "add", "removed.txt"), check=True)
+    removed.unlink()
+
+    completed = _run_check(repository)
+
+    assert completed.returncode == 0, completed.stderr
+
+
 def _git_repository(tmp_path: Path) -> Path:
     subprocess.run(("git", "init", "--quiet", str(tmp_path)), check=True)
     return tmp_path
