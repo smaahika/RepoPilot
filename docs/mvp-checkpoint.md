@@ -7,9 +7,9 @@ inspect it, create a structured plan, execute validated tools, apply a safe patc
 reflect on failure, retry within budgets, and return a categorized terminal result while preserving
 the source repository.
 
-The CLI now composes the controller with validated configuration and the real provider adapter, and
+The CLI composes the controller with validated configuration and the real provider adapter, and
 allocated runs persist the required report, patch, event, and command-log artifacts. The `v0.1.0`
-release remains gated on committing this surface and passing the release checkpoint from that commit.
+release candidate is complete and remains gated on hosted checks for its exact commit.
 
 ## Reproduction
 

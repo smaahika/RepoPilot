@@ -52,13 +52,13 @@ as a small, tested commit. Scope may be reduced after the Day 7 checkpoint.
 - [x] Resolve architectural debt and strengthen exception boundaries.
 - [x] Run formatting, lint, typing, unit, and integration checks.
 - [x] Review scope using the working vertical slice.
-- [ ] Tag `v0.1.0` after CLI composition and durable run artifacts are complete.
+- [ ] Optionally tag `v0.1.0` after the release commit passes hosted checks.
 
 ## Days 8–14 — Prioritized after checkpoint
 
 - [x] Wire validated configuration, the real provider adapter, and the controller into the CLI.
 - [x] Persist reports, diffs, JSONL events, command logs, timing, and usage.
-- [ ] Select and add an open-source license before public release.
+- [x] Select and add an open-source license before public release.
 - [x] Add and document Docker isolation.
 - [x] Add context ranking, compaction, and measurements.
 - [x] Build 6–10 deterministic benchmark tasks and a metrics runner.
@@ -70,8 +70,6 @@ as a small, tested commit. Scope may be reduced after the Day 7 checkpoint.
 
 - [x] Verify the deterministic demo, benchmark, local checkpoint, CI, and CodeQL.
 - [x] Document release evidence, remaining risks, interview stories, and resume bullets.
-- [ ] Select and add an open-source license.
-- [ ] Enable Dependabot security updates and protect `main` with required checks.
-- [ ] Validate dependency review on a pull request.
-- [ ] Record and add a short demo video or GIF.
-- [ ] Promote the package to `0.1.0`, verify the exact commit, and publish the `v0.1.0` release.
+- [x] Select and add an open-source license.
+- [x] Promote the package to `0.1.0` and verify its distribution metadata.
+- [ ] Confirm hosted checks on the release commit and optionally publish the `v0.1.0` tag.

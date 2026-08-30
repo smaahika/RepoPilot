@@ -3,7 +3,7 @@
 Notable changes to RepoPilot are recorded here. The project follows semantic versioning after its
 first release.
 
-## 0.1.0 — Unreleased
+## 0.1.0 — 2026-08-30
 
 - Added a controller-owned state machine with bounded planning, editing, verification, reflection,
   and termination behavior.
@@ -15,5 +15,5 @@ first release.
 - Added packaging checks, Python compatibility CI, CodeQL, dependency review, Dependabot, and local
   repository-hygiene scanning.
 
-The release remains pending until the owner selects a license, the final commit passes hosted checks,
-and the `v0.1.0` tag is deliberately created from that commit.
+The release commit is licensed under MIT. Publication remains pending until the exact commit passes
+hosted checks and the `v0.1.0` tag is deliberately created from that commit.

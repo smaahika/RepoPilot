@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/smaahika/RepoPilot/actions/workflows/ci.yml/badge.svg)](https://github.com/smaahika/RepoPilot/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/smaahika/RepoPilot/actions/workflows/codeql.yml/badge.svg)](https://github.com/smaahika/RepoPilot/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 RepoPilot is a constrained coding agent that turns one narrowly scoped repository task into a
 tested, reviewable patch and an inspectable execution report.
@@ -188,7 +189,7 @@ usage is invented when a scripted model reports none.
 - Context ranking uses filenames and task terms rather than semantic embeddings.
 - The baseline is deterministic scripted replay; repeated live-model trials are future work.
 - RepoPilot produces a patch for review and never applies it back to the source repository.
-- The project is pre-release (`0.1.0.dev0`) and does not yet include an open-source license.
+- The first public release is intentionally narrow; interfaces may evolve after `0.1.0`.
 
 ## Development checkpoint
 
@@ -223,3 +224,7 @@ Run only the fast repository-hygiene gate with `python scripts/security_check.py
 - [Security policy](SECURITY.md)
 - [Contributing guide](CONTRIBUTING.md)
 - [Implementation backlog](BACKLOG.md)
+
+## License
+
+RepoPilot is available under the [MIT License](LICENSE).

@@ -58,9 +58,12 @@ def main() -> int:
         if _run((str(python), "-m", "repopilot", "--version")) != 0:
             return 1
         metadata_check = (
-            "from importlib.metadata import version; "
+            "from importlib.metadata import files, metadata, version; "
             "import repopilot; "
-            "assert version('repopilot') == repopilot.__version__"
+            "assert version('repopilot') == repopilot.__version__; "
+            "assert metadata('repopilot')['License-Expression'] == 'MIT'; "
+            "assert any(str(path).endswith('licenses/LICENSE') "
+            "for path in (files('repopilot') or ()))"
         )
         if _run((str(python), "-c", metadata_check)) != 0:
             return 1

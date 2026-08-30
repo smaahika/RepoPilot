@@ -1,7 +1,7 @@
 # Security Policy
 
 RepoPilot executes repository content and model-proposed edits, so its safety boundaries are part of
-the product. The project is pre-release and supports only the latest commit on `main`.
+the product. Security fixes target the latest release and the current `main` branch.
 
 ## Report a vulnerability
 
